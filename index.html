@@ -5,23 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bot Market Mini App</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Icons -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <!-- Telegram WebApp JS -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div id="app">
-        <!-- Loading Screen -->
+        <!-- Loading Screen (No Change) -->
         <div id="loading-screen" class="page active-page">
             <div class="spinner"></div>
             <p>Loading App...</p>
             <p id="error-message" style="color: red; display: none;"></p>
         </div>
 
-        <!-- Home Page -->
+        <!-- Home Page (No Major Change, FAB still exists) -->
         <div id="home-page" class="page">
-            <header>
+             <header>
                 <h1>Bot Market</h1>
                 <div class="search-container">
                     <span class="material-symbols-outlined">search</span>
@@ -34,58 +32,107 @@
                 <button class="tab-button" data-tab="top-liked">Top Liked</button>
             </div>
             <main id="bot-list-container">
-                <!-- Bot cards will be loaded here -->
                 <p class="placeholder">Loading bots...</p>
             </main>
-            <button id="earn-ads-button" class="fab-like">
-                <span class="material-symbols-outlined">paid</span> Earn Points
+             <!-- Keep FAB on home? Or remove? Let's keep it for quick access -->
+            <button id="home-earn-ads-button" class="fab-like" title="Earn Points by Watching Ads">
+                <span class="material-symbols-outlined">paid</span>
+                <span>Earn</span>
             </button>
         </div>
 
-        <!-- Profile Page -->
+        <!-- Profile Page (Ads Button Added, Daily Share Removed) -->
         <div id="profile-page" class="page">
             <header>
                 <h1>Profile</h1>
             </header>
             <main>
-                <div class="profile-info">
+                <div class="profile-info card-style">
                     <p><strong>Name:</strong> <span id="profile-name">...</span></p>
                     <p><strong>Username:</strong> <span id="profile-username">...</span></p>
                     <p><strong>Chat ID:</strong> <span id="profile-chat-id">...</span></p>
-                    <p><strong>Points:</strong> <span id="profile-points">0</span></p>
-                    <button id="daily-share-button">
-                        <span class="material-symbols-outlined">share</span> Daily Share Bonus
+                    <p><strong>Points:</strong> <span id="profile-points" class="points-display">0</span></p>
+                    <!-- Removed Daily Share, Added Ads Button -->
+                    <button id="profile-earn-ads-button" class="button primary-button">
+                        <span class="material-symbols-outlined">ads_click</span> Earn Points (Watch Ad)
                     </button>
-                </div>
+                 </div>
                 <h2>My Submitted Bots</h2>
                 <div id="my-bots-list">
-                    <!-- User's submitted bots will be loaded here -->
-                     <p class="placeholder">You haven't added any bots yet.</p>
+                    <p class="placeholder">You haven't added any bots yet.</p>
                 </div>
             </main>
         </div>
 
-         <!-- Bot Detail Page (Simplified - could be a popup/modal too) -->
+         <!-- Bot Detail Page (Comments Added) -->
         <div id="bot-detail-page" class="page">
              <header>
-                <button id="back-to-home-button"><span class="material-symbols-outlined">arrow_back</span></button>
+                <button id="back-to-home-button" class="icon-button"><span class="material-symbols-outlined">arrow_back</span></button>
                 <h1 id="detail-bot-name">Bot Details</h1>
             </header>
-            <main id="bot-detail-content">
+            <main id="bot-detail-content" class="card-style">
                 <!-- Bot details loaded here -->
                  <p class="placeholder">Loading bot details...</p>
+                 <!-- Placeholder structure, filled by JS -->
+                 <!-- <img src="..." > -->
+                 <!-- <p id="detail-description">...</p> -->
+                 <!-- <div id="detail-meta">...</div> -->
+                 <!-- <div id="detail-like-section">...</div> -->
             </main>
+            <section id="comments-section" class="card-style">
+                 <h2>Comments</h2>
+                 <div id="comments-list">
+                     <p class="placeholder">Loading comments...</p>
+                     <!-- Comments will be loaded here -->
+                 </div>
+                 <form id="add-comment-form">
+                     <textarea id="comment-input" placeholder="Add your comment..." rows="3" required></textarea>
+                     <button type="submit" class="button primary-button">
+                         <span class="material-symbols-outlined">send</span> Post Comment
+                    </button>
+                 </form>
+             </section>
         </div>
 
-        <!-- Navigation -->
+        <!-- *** NEW Chat Page *** -->
+        <div id="chat-page" class="page">
+            <header>
+                <h1>Global Chat</h1>
+                <!-- Maybe add online user count later -->
+            </header>
+            <main id="chat-messages-container">
+                <div id="chat-messages">
+                    <p class="placeholder">Loading messages...</p>
+                    <!-- Chat messages will appear here -->
+                </div>
+            </main>
+            <form id="chat-form">
+                 <input type="text" id="chat-input" placeholder="Type your message..." required autocomplete="off">
+                 <button type="submit" class="icon-button send-button">
+                     <span class="material-symbols-outlined">send</span>
+                 </button>
+                 <!-- Point Sending Button (Future Feature - Needs Careful Implementation) -->
+                 <!-- <button type="button" id="send-points-button" class="icon-button points-button" title="Send Points (Coming Soon)">
+                     <span class="material-symbols-outlined">paid</span>
+                 </button> -->
+            </form>
+        </div>
+
+        <!-- Navigation (Chat Button Added) -->
         <nav class="bottom-nav">
             <button data-page="home-page" class="nav-button active">
                 <span class="material-symbols-outlined">home</span>
                 <span>Home</span>
             </button>
+             <!-- Add Bot Button -->
             <button id="add-bot-nav-button" class="nav-button add-button">
                 <span class="material-symbols-outlined">add_circle</span>
                 <span>Add Bot</span>
+            </button>
+            <!-- Chat Button -->
+             <button data-page="chat-page" class="nav-button">
+                <span class="material-symbols-outlined">chat_bubble</span>
+                <span>Chat</span>
             </button>
             <button data-page="profile-page" class="nav-button">
                 <span class="material-symbols-outlined">person</span>
@@ -93,78 +140,62 @@
             </button>
         </nav>
 
-        <!-- Popups -->
+        <!-- Popups (Add Bot, Boost, Info - Daily Share Removed) -->
         <div id="add-bot-popup" class="popup">
             <div class="popup-content">
                 <span class="close-popup" data-popup="add-bot-popup">×</span>
                 <h2>Add New Bot</h2>
                 <form id="add-bot-form">
-                    <input type="hidden" id="edit-bot-id"> <!-- For editing existing bots -->
+                    <!-- Form fields remain the same -->
+                     <input type="hidden" id="edit-bot-id">
                     <label for="bot-name">Bot Name *</label>
                     <input type="text" id="bot-name" required>
-
                     <label for="bot-description">Description *</label>
                     <textarea id="bot-description" rows="3" required></textarea>
-
                     <label for="bot-link">Bot Link (t.me/...) *</label>
                     <input type="url" id="bot-link" required placeholder="https://t.me/YourBotUsername">
-
                     <label for="bot-image">Image Link (Optional)</label>
                     <input type="url" id="bot-image" placeholder="https://...">
-
                     <label for="bot-community">Telegram Community (Optional)</label>
                     <input type="url" id="bot-community" placeholder="https://t.me/YourGroupOrChannel">
-
                     <label for="bot-airdrop-name">Airdrop Name (Optional)</label>
                     <input type="text" id="bot-airdrop-name">
-
                     <label for="bot-airdrop-points">Airdrop Points (Optional)</label>
                     <input type="number" id="bot-airdrop-points">
-
                     <label for="bot-active">
                         <input type="checkbox" id="bot-active" checked> Make Active (Visible)?
                     </label>
-
-                    <button type="submit" id="submit-bot-button">Add Bot</button>
-                    <button type="button" class="cancel-button" data-popup="add-bot-popup">Cancel</button>
+                    <button type="submit" id="submit-bot-button" class="button primary-button">Add Bot</button>
+                    <button type="button" class="cancel-button button" data-popup="add-bot-popup">Cancel</button>
                 </form>
             </div>
         </div>
 
-        <div id="daily-share-popup" class="popup">
-             <div class="popup-content">
-                 <span class="close-popup" data-popup="daily-share-popup">×</span>
-                 <h2>Daily Share Bonus!</h2>
-                 <p>Share the app today to earn <span id="daily-share-amount">?</span> points!</p>
-                 <button id="claim-daily-share-button">Claim Bonus</button>
-                 <p id="daily-share-status"></p>
-            </div>
-        </div>
-
-         <div id="boost-popup" class="popup">
+        <div id="boost-popup" class="popup">
              <div class="popup-content">
                  <span class="close-popup" data-popup="boost-popup">×</span>
                  <h2>Boost Bot</h2>
                  <p>Make your bot appear in the Trending section!</p>
                  <input type="hidden" id="boost-bot-id">
                  <div class="boost-options">
-                     <button class="boost-option" data-duration="1" data-cost="1000">Boost for 1 Day (1000 Points)</button>
-                     <button class="boost-option" data-duration="2" data-cost="2000">Boost for 2 Days (2000 Points)</button>
-                     <button class="boost-option" data-duration="7" data-cost="10000">Boost for 1 Week (10000 Points)</button>
+                     <button class="boost-option button" data-duration="1" data-cost="1000">Boost for 1 Day (<span class="points-display">1000</span> Pts)</button>
+                     <button class="boost-option button" data-duration="2" data-cost="2000">Boost for 2 Days (<span class="points-display">2000</span> Pts)</button>
+                     <button class="boost-option button" data-duration="7" data-cost="10000">Boost for 1 Week (<span class="points-display">10K</span> Pts)</button>
                  </div>
-                 <p id="boost-status" style="margin-top: 10px;"></p>
-                 <button type="button" class="cancel-button" data-popup="boost-popup">Cancel</button>
+                 <p id="boost-status" style="margin-top: 15px; min-height: 1.2em;"></p>
+                 <button type="button" class="cancel-button button" data-popup="boost-popup">Cancel</button>
             </div>
         </div>
 
-         <div id="info-popup" class="popup">
+        <div id="info-popup" class="popup">
             <div class="popup-content">
                 <span class="close-popup" data-popup="info-popup">×</span>
                 <h2 id="info-popup-title">Info</h2>
                 <p id="info-popup-message"></p>
-                <button type="button" class="cancel-button" data-popup="info-popup">OK</button>
+                <button type="button" class="cancel-button button" data-popup="info-popup">OK</button>
             </div>
         </div>
+        <!-- Daily Share Popup is Removed -->
 
     </div>
 
