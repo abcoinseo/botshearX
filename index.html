@@ -3,1589 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bot Market Pro</title>
-
-    <!-- Telegram Web App SDK -->
+    <title>Bot Market Mini App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <!-- Telegram WebApp JS -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-    <!-- Ad SDK -->
-    <script src='//whephiwums.com/sdk.js' data-zone='9263144' data-sdk='show_9263144'></script>
-
-    <style>
-        /* --- Dark Theme CSS (Includes refinements) --- */
-        :root {
-            --bg-primary: #0f0f0f;      /* Even darker primary background */
-            --bg-secondary: #1a1a1a;    /* Slightly lighter background */
-            --bg-tertiary: #252525;     /* Cards, headers, popups */
-            --bg-hover: #303030;       /* Hover state */
-            --text-primary: #e4e4e4;    /* Primary text */
-            --text-secondary: #a8a8a8;  /* Secondary text */
-            --text-link: #52a9ff;       /* Link color */
-            --accent-primary: #0095f6;  /* Primary accent (Instagram-like blue) */
-            --accent-secondary: #ed4956; /* Secondary accent (Instagram-like red) */
-            --border-color: #363636;    /* Borders */
-            --success-color: #58c473;   /* Success green */
-            --error-color: #f04a4a;     /* Error red */
-            --warning-color: #f5a623;   /* Warning/Boost yellow */
-            --button-text-dark: #ffffff;
-            --button-text-light: #000000;
-        }
-
-        /* Basic Reset & Defaults */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-primary); color: var(--text-primary); overscroll-behavior-y: contain; font-size: 16px; line-height: 1.5; }
-        #app { display: flex; flex-direction: column; height: 100%; max-width: 600px; margin: 0 auto; background-color: var(--bg-secondary); position: relative; overflow: hidden; }
-        a { color: var(--text-link); text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button { cursor: pointer; font-family: inherit; }
-        input, textarea, button { outline: none; }
-
-        /* Page Handling */
-        .page { display: none; flex-direction: column; flex-grow: 1; overflow-y: auto; padding-bottom: 65px; background-color: var(--bg-secondary); }
-        .page.active { display: flex; }
-
-        /* Header */
-        header { background-color: var(--bg-tertiary); color: var(--text-primary); padding: 10px 15px; text-align: center; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; min-height: 55px; display: flex; align-items: center; justify-content: center; }
-        header h1 { font-size: 1.2em; margin: 0; flex-grow: 1; text-align: center; font-weight: 600; }
-
-        /* Search Container & Input */
-        .search-container { padding: 10px 15px; background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); position: sticky; top: 55px; /* Stick below header */ z-index: 9; }
-        #search-bot { width: 100%; padding: 10px 15px 10px 40px; /* Space for icon */ border: 1px solid var(--border-color); background-color: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.95em; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a8a8a8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 12px center; background-size: 16px 16px; }
-        #search-bot::placeholder { color: var(--text-secondary); }
-        #search-bot:focus { border-color: var(--accent-primary); background-color: var(--bg-primary); }
-
-
-        /* Content Area */
-        .content-area { padding: 15px; flex-grow: 1; }
-        .content-area h2 { color: var(--text-primary); margin-bottom: 15px; font-size: 1.1em; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; font-weight: 600; }
-
-        /* Navigation Bar */
-        #navbar { display: flex; justify-content: space-around; align-items: stretch; background-color: var(--bg-tertiary); border-top: 1px solid var(--border-color); position: fixed; bottom: 0; left: 0; right: 0; height: 60px; max-width: 600px; margin: 0 auto; z-index: 100; }
-        .nav-button { background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75em; padding: 5px; flex-grow: 1; transition: color 0.2s ease; position: relative; }
-        .nav-button svg { width: 26px; height: 26px; margin-bottom: 2px; fill: currentcolor; }
-        .nav-button.active { color: var(--accent-primary); }
-        .nav-button.active::before { content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 2px; background-color: var(--accent-primary); border-radius: 1px; }
-        .nav-button span { margin-top: 1px; }
-
-        /* Bot List & Cards */
-        #bot-list-container { display: flex; flex-direction: column; gap: 12px; padding: 15px; }
-        .bot-card { background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; display: flex; gap: 15px; align-items: center; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; }
-        .bot-card:hover { background-color: var(--bg-hover); }
-        .bot-card:active { transform: scale(0.99); } /* Subtle press effect */
-        .bot-card img.bot-icon, .detail-bot-icon { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background-color: #444; flex-shrink: 0; border: 1px solid var(--border-color); }
-        .bot-card .bot-info { flex-grow: 1; overflow: hidden; }
-        .bot-card .bot-info h3 { margin: 0 0 4px 0; font-size: 1.1em; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; display: flex; align-items: center; }
-        .bot-card .bot-info h3 .boosted-indicator { font-size: 1.1em; margin-left: 8px; line-height: 1; } /* Just the icon */
-        .bot-card .bot-info p { font-size: 0.9em; color: var(--text-secondary); margin: 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
-        .bot-card .bot-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .bot-card .like-button { background: none; border: none; font-size: 1.5em; color: var(--text-secondary); padding: 5px; line-height: 1; transition: color 0.2s ease, transform 0.2s ease; border-radius: 50%; }
-        .bot-card .like-button:hover { background-color: rgba(255, 255, 255, 0.05); }
-        .bot-card .like-button.liked { color: var(--accent-secondary); }
-        .bot-card .like-button.liked:hover { background-color: rgba(237, 73, 86, 0.1); }
-        .bot-card .like-button:active { transform: scale(0.9); }
-        .bot-card .like-count { font-size: 0.95em; color: var(--text-primary); min-width: 18px; text-align: right; font-weight: 500; }
-
-        /* Profile Page Redesign */
-        #profile-page .content-area { padding-bottom: 0; } /* Reduce bottom padding */
-        .profile-header { display: flex; align-items: center; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
-        .profile-avatar { width: 60px; height: 60px; border-radius: 50%; background-color: var(--accent-primary); color: var(--bg-primary); display: flex; align-items: center; justify-content: center; font-size: 1.8em; font-weight: bold; flex-shrink: 0; }
-        .profile-name-user h2 { font-size: 1.3em; margin: 0 0 2px; color: var(--text-primary); font-weight: 600; }
-        .profile-name-user p { font-size: 0.95em; color: var(--text-secondary); margin: 0; }
-        .profile-details p { margin-bottom: 12px; font-size: 1em; color: var(--text-secondary); display: flex; justify-content: space-between; }
-        .profile-details strong { color: var(--text-primary); font-weight: 500; margin-right: 10px; }
-        .profile-points-section { background-color: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
-        .profile-points-section strong { display: block; font-size: 1em; color: var(--text-secondary); margin-bottom: 5px; }
-        #profile-points { font-size: 2em; font-weight: bold; color: var(--success-color); }
-        .profile-actions { display: flex; gap: 10px; margin-bottom: 20px; }
-        .profile-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 0.95em; font-weight: 600; transition: background-color 0.2s ease, opacity 0.2s ease; }
-        #earn-points-button { background-color: var(--success-color); color: var(--button-text-dark); }
-        #earn-points-button:hover { background-color: #4aa05f; }
-        #send-points-button { background-color: var(--accent-primary); color: var(--button-text-dark); }
-        #send-points-button:hover { background-color: #007acc; }
-        .profile-actions button:active { opacity: 0.8; }
-
-        /* Transaction List Styling */
-        #transaction-list { max-height: 250px; overflow-y: auto; padding-right: 5px; /* Space for scrollbar */ }
-        .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 5px; }
-        .transaction-item:last-child { border-bottom: none; margin-bottom: 0; }
-        .transaction-details { flex-grow: 1; margin-right: 10px; }
-        .transaction-reason { display: block; font-size: 0.95em; color: var(--text-primary); margin-bottom: 2px; }
-        .transaction-date { display: block; font-size: 0.8em; color: var(--text-secondary); }
-        .transaction-amount { font-size: 1.1em; font-weight: bold; flex-shrink: 0; }
-        .transaction-amount.positive { color: var(--success-color); }
-        .transaction-amount.negative { color: var(--error-color); }
-
-
-        /* Popups */
-        .popup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .popup-overlay.active { display: flex; }
-        .popup-content { background-color: var(--bg-tertiary); padding: 25px; border-radius: 15px; width: 90%; max-width: 450px; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5); animation: popup-appear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popup-appear { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .close-popup, .close-popup-button { position: absolute; top: 10px; right: 10px; background: var(--bg-hover); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1.4em; line-height: 32px; text-align: center; cursor: pointer; color: var(--text-secondary); transition: background-color 0.2s, color 0.2s; }
-        .close-popup:hover { background-color: #444; color: var(--text-primary); }
-        .close-popup-button { position: static; display: block; margin: 20px auto 0; width: auto; padding: 10px 30px; border-radius: 8px; background-color: var(--accent-primary); color: var(--button-text-dark); font-weight: 600; font-size: 1em; }
-        .close-popup-button:hover { background-color: #007acc; }
-        .popup-content h2 { margin: 0 0 20px; text-align: center; font-size: 1.4em; color: var(--text-primary); font-weight: 600; }
-        .popup-content p { margin-bottom: 15px; font-size: 1em; line-height: 1.5; color: var(--text-secondary); }
-
-        /* Form Styles */
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9em; color: var(--text-secondary); }
-        .form-group input[type="text"], .form-group input[type="url"], .form-group input[type="number"], .form-group textarea { width: 100%; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1em; background-color: var(--bg-secondary); color: var(--text-primary); transition: border-color 0.2s ease, background-color 0.2s ease; }
-        .form-group input:focus, .form-group textarea:focus { border-color: var(--accent-primary); background-color: var(--bg-primary); }
-        .form-group textarea { min-height: 80px; resize: vertical; }
-        .popup-content form button[type="submit"], .popup-content form button[type="button"] { display: block; width: 100%; padding: 14px; background-color: var(--accent-primary); color: var(--button-text-dark); border: none; border-radius: 8px; font-size: 1.05em; font-weight: 600; margin-top: 15px; transition: background-color 0.2s ease, opacity 0.2s ease; }
-        .popup-content form button:hover { background-color: #007acc; }
-        .popup-content form button:disabled { background-color: #555; cursor: not-allowed; color: #999; opacity: 0.7; }
-        #delete-bot-button { background-color: var(--error-color) !important; color: white !important; }
-        #delete-bot-button:hover { background-color: #d32f2f !important; }
-        .popup-status { text-align: center; font-size: 0.9em; margin-top: 15px; min-height: 1.2em; font-weight: 500; }
-        .popup-status.success { color: var(--success-color); }
-        .popup-status.error { color: var(--error-color); }
-        .popup-status.info { color: var(--text-secondary); }
-
-
-        /* Ad Popup */
-        #watch-ad-button { display: block; margin: 20px auto 10px auto; padding: 12px 25px; background-color: var(--success-color); color: white; border: none; border-radius: 8px; font-weight: 600; transition: background-color 0.2s ease; }
-        #watch-ad-button:hover { background-color: #4aa05f; }
-        #watch-ad-button:disabled { background-color: #555; cursor: not-allowed; opacity: 0.7; }
-        #ad-status { text-align: center; font-size: 0.9em; margin-top: 15px; min-height: 1.2em; color: var(--text-secondary); }
-
-        /* Loading Spinner */
-        #loading-page { justify-content: center; align-items: center; text-align: center; }
-        .spinner { border: 5px solid rgba(255, 255, 255, 0.1); width: 45px; height: 45px; border-radius: 50%; border-left-color: var(--accent-primary); margin: 20px auto; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #loading-page p, #error-page p { text-align: center; color: var(--text-secondary); padding: 0 20px; }
-        #error-page p { color: var(--error-color); font-weight: 500; }
-
-        /* Tabs */
-        .tabs { display: flex; background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); position: sticky; top: 90px; /* Below header + search */ z-index: 8; }
-        .tab-button { flex: 1; padding: 14px 5px; border: none; background: none; cursor: pointer; font-size: 1em; color: var(--text-secondary); border-bottom: 3px solid transparent; transition: border-color 0.2s ease, color 0.2s ease; font-weight: 600; }
-        .tab-button.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
-
-        /* Bot Detail Page */
-        #bot-detail-page header { justify-content: flex-start; }
-        #back-to-home-button { background: none; border: none; font-size: 1.8em; color: var(--accent-primary); margin-right: 10px; padding: 0 8px; line-height: 1; }
-        #bot-detail-page header h1 { margin-right: 45px; /* Ensure space for back button */ }
-        #bot-detail-content { padding: 20px 15px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
-        #bot-detail-content img.detail-bot-icon { display: block; width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 20px auto; object-fit: cover; background-color: #555; border: 2px solid var(--border-color); }
-        #bot-detail-content h2 { text-align: center; margin-bottom: 15px; font-size: 1.5em; border-bottom: none; padding-bottom: 0; font-weight: 600; }
-        #bot-detail-content p { margin-bottom: 12px; line-height: 1.6; color: var(--text-secondary); font-size: 1em; }
-        #bot-detail-content p strong { color: var(--text-primary); font-weight: 600; display: inline-block; min-width: 100px; }
-        .detail-action-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 25px; }
-        .detail-action-buttons button { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 1em; font-weight: 600; background-color: var(--bg-tertiary); color: var(--text-primary); transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s; }
-        .detail-action-buttons button:hover { background-color: var(--bg-hover); border-color: #666; }
-        .detail-action-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .detail-like-button.liked { background-color: rgba(237, 73, 86, 0.1); color: var(--accent-secondary); border: 1px solid var(--accent-secondary); }
-        .detail-like-button.liked:hover { background-color: rgba(237, 73, 86, 0.2); }
-        .detail-boost-button { background-color: rgba(0, 149, 246, 0.1); color: var(--accent-primary); border: 1px solid var(--accent-primary); }
-        .detail-boost-button:hover:not(:disabled) { background-color: rgba(0, 149, 246, 0.2); }
-
-        /* Comments */
-        #bot-comments-section { padding: 0 15px; }
-        #bot-comments-section h2 { font-size: 1.2em; margin-bottom: 15px; color: var(--text-primary); border-top: 1px solid var(--border-color); padding-top: 20px; font-weight: 600; }
-        #comments-list { margin-bottom: 20px; }
-        #comments-list .comment { background-color: var(--bg-tertiary); padding: 12px 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); }
-        #comments-list .comment-meta { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; }
-        #comments-list .comment-meta strong { color: var(--accent-primary); font-weight: 600; }
-        #comments-list .comment-meta .timestamp { font-style: normal; }
-        #comments-list .comment-text { font-size: 1em; color: var(--text-primary); line-height: 1.5; word-wrap: break-word; }
-        #new-comment-text { width: 100%; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-top: 10px; min-height: 70px; font-size: 1em; background-color: var(--bg-secondary); color: var(--text-primary); resize: vertical; }
-        #new-comment-text:focus { border-color: var(--accent-primary); background-color: var(--bg-primary); }
-        #submit-comment-button { display: block; margin: 15px 0 0 auto; padding: 10px 25px; background-color: var(--accent-primary); color: var(--button-text-dark); border: none; border-radius: 8px; font-weight: 600; transition: background-color 0.2s, opacity 0.2s; }
-        #submit-comment-button:hover { background-color: #007acc; }
-        #submit-comment-button:disabled { background-color: #555; cursor: not-allowed; opacity: 0.7; }
-
-        /* Boost Popup */
-        .boost-options { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
-        .boost-option { padding: 12px; border: 1px solid var(--accent-primary); background-color: transparent; color: var(--accent-primary); border-radius: 8px; text-align: center; transition: background-color 0.2s ease, color 0.2s ease; font-weight: 600; }
-        .boost-option:hover:not(:disabled) { background-color: rgba(0, 149, 246, 0.1); }
-        .boost-option:disabled { opacity: 0.5; cursor: not-allowed; border-color: #555; color: #777; }
-        #boost-status { text-align: center; margin-top: 15px; font-size: 0.9em; min-height: 1.2em; font-weight: 500; }
-        #boost-status.success { color: var(--success-color); }
-        #boost-status.error { color: var(--error-color); }
-
-        /* My Added Bots List */
-        #add-bot-page .content-area > h2 { margin-top: 20px; }
-        #my-added-bots-list .my-bot-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 10px; background-color: var(--bg-tertiary); transition: background-color 0.2s; }
-        #my-added-bots-list .my-bot-item:hover { background-color: var(--bg-hover); }
-        #my-added-bots-list .my-bot-item span { font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px; }
-        #my-added-bots-list .my-bot-item span .inactive-tag { opacity: 0.6; font-style: italic; font-size: 0.9em; color: var(--warning-color); }
-        #my-added-bots-list .my-bot-actions { display: flex; gap: 8px; flex-shrink: 0; }
-        #my-added-bots-list .my-bot-actions button { padding: 6px 12px; font-size: 0.85em; border-radius: 6px; border: 1px solid; background: none; transition: background-color 0.2s, color 0.2s, opacity 0.2s; font-weight: 500; }
-        .edit-my-bot { border-color: var(--warning-color); color: var(--warning-color); }
-        .edit-my-bot:hover { background-color: rgba(245, 166, 35, 0.1); }
-        .boost-my-bot { border-color: var(--accent-primary); color: var(--accent-primary); }
-        .boost-my-bot:hover:not(:disabled) { background-color: rgba(0, 149, 246, 0.1); }
-        .boost-my-bot:disabled { border-color: #555; color: #777; cursor: not-allowed; opacity: 0.6; }
-
-        /* Custom Alert Popup */
-        #custom-alert-popup .popup-content { text-align: center; }
-        #custom-alert-title { font-weight: 600; }
-        #custom-alert-message { color: var(--text-primary); }
-
-        /* Utility Classes */
-        .text-success { color: var(--success-color); }
-        .text-error { color: var(--error-color); }
-        .text-warning { color: var(--warning-color); }
-        .text-info { color: var(--text-secondary); }
-        .text-muted { color: var(--text-secondary); }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
-        ::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #666; }
-
-    </style>
 </head>
 <body>
-
     <div id="app">
-        <!-- Loading Indicator -->
-        <div id="loading-page" class="page active">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="page active-page">
             <div class="spinner"></div>
-            <p>Initializing Bot Market...</p>
-        </div>
-
-        <!-- Error/Platform Indicator -->
-        <div id="error-page" class="page">
-            <p id="error-message">This app must be opened within Telegram.</p>
-            <p>Please launch it from the bot menu.</p>
+            <p>Loading App...</p>
+            <p id="error-message" style="color: red; display: none;"></p>
         </div>
 
         <!-- Home Page -->
         <div id="home-page" class="page">
-            <header><h1>Bot Market</h1></header>
-            <div class="search-container">
-                <input type="search" id="search-bot" placeholder="Search bots...">
-            </div>
-            <div class="tabs">
-                <button class="tab-button active" data-tab="all-bots">All Bots</button>
-                <button class="tab-button" data-tab="trending-bots">🚀 Trending</button>
-            </div>
-            <div id="bot-list-container">
-                 <!-- Initial loading state -->
-                <p class="text-muted" style="text-align: center; padding: 30px 15px;">Loading bots...</p>
-            </div>
-        </div>
-
-        <!-- Add Bot Page -->
-        <div id="add-bot-page" class="page">
-            <header><h1>Manage Bots</h1></header>
-             <div class="content-area">
-                <p class="text-muted" style="text-align: center; margin-bottom: 20px;">Use the '+' button in navigation to add a new bot.</p>
-                <h2>My Added Bots</h2>
-                <div id="my-added-bots-list">
-                     <p class="text-muted" style="text-align: center;">Loading your bots...</p>
+            <header>
+                <h1>Bot Market</h1>
+                <div class="search-container">
+                    <span class="material-symbols-outlined">search</span>
+                    <input type="text" id="search-input" placeholder="Search bots...">
                 </div>
+            </header>
+            <div class="tabs">
+                <button class="tab-button active" data-tab="all">All Bots</button>
+                <button class="tab-button" data-tab="trending">Trending</button>
+                <button class="tab-button" data-tab="top-liked">Top Liked</button>
             </div>
+            <main id="bot-list-container">
+                <!-- Bot cards will be loaded here -->
+                <p class="placeholder">Loading bots...</p>
+            </main>
+            <button id="earn-ads-button" class="fab-like">
+                <span class="material-symbols-outlined">paid</span> Earn Points
+            </button>
         </div>
 
         <!-- Profile Page -->
         <div id="profile-page" class="page">
-            <header><h1>My Profile</h1></header>
-            <div class="content-area">
-                <div class="profile-header">
-                    <div class="profile-avatar" id="profile-avatar">?</div> <!-- Placeholder -->
-                    <div class="profile-name-user">
-                        <h2 id="profile-fullname">...</h2>
-                        <p id="profile-username">...</p>
-                    </div>
+            <header>
+                <h1>Profile</h1>
+            </header>
+            <main>
+                <div class="profile-info">
+                    <p><strong>Name:</strong> <span id="profile-name">...</span></p>
+                    <p><strong>Username:</strong> <span id="profile-username">...</span></p>
+                    <p><strong>Chat ID:</strong> <span id="profile-chat-id">...</span></p>
+                    <p><strong>Points:</strong> <span id="profile-points">0</span></p>
+                    <button id="daily-share-button">
+                        <span class="material-symbols-outlined">share</span> Daily Share Bonus
+                    </button>
                 </div>
-
-                <div class="profile-points-section">
-                    <strong>MY POINTS BALANCE</strong>
-                    <span id="profile-points">0</span>
+                <h2>My Submitted Bots</h2>
+                <div id="my-bots-list">
+                    <!-- User's submitted bots will be loaded here -->
+                     <p class="placeholder">You haven't added any bots yet.</p>
                 </div>
-
-                <div class="profile-actions">
-                    <button id="earn-points-button">💰 Earn Points</button>
-                    <button id="send-points-button">💸 Send Points</button>
-                </div>
-
-
-                <div class="profile-details" style="margin-top: 25px;">
-                     <p><strong>First Name:</strong> <span id="profile-fname">...</span></p>
-                     <p><strong>Last Name:</strong> <span id="profile-lname">...</span></p>
-                     <p><strong>Chat ID:</strong> <span id="profile-chat-id">...</span></p>
-                </div>
-
-                 <div style="margin-top: 25px;">
-                    <h2>Recent Transactions</h2>
-                     <div id="transaction-list">
-                         <p class="text-muted" style="text-align: center;">Loading transaction history...</p>
-                     </div>
-                </div>
-            </div>
+            </main>
         </div>
 
-        <!-- Bot Detail View -->
+         <!-- Bot Detail Page (Simplified - could be a popup/modal too) -->
         <div id="bot-detail-page" class="page">
              <header>
-                <button id="back-to-home-button" title="Back">&lt;</button>
+                <button id="back-to-home-button"><span class="material-symbols-outlined">arrow_back</span></button>
                 <h1 id="detail-bot-name">Bot Details</h1>
             </header>
-            <div id="bot-detail-content" class="content-area" style="padding-bottom: 0;"></div>
-             <div id="bot-comments-section" class="content-area">
-                <h2>Comments</h2>
-                <div id="comments-list"></div>
-                <textarea id="new-comment-text" placeholder="Add your comment..." rows="3"></textarea>
-                <button id="submit-comment-button" disabled>Post Comment</button>
-            </div>
+            <main id="bot-detail-content">
+                <!-- Bot details loaded here -->
+                 <p class="placeholder">Loading bot details...</p>
+            </main>
         </div>
 
-        <!-- Navigation Bar -->
-        <nav id="navbar">
-            <button data-page="home-page" class="nav-button active" title="Home">
-                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg>
+        <!-- Navigation -->
+        <nav class="bottom-nav">
+            <button data-page="home-page" class="nav-button active">
+                <span class="material-symbols-outlined">home</span>
                 <span>Home</span>
             </button>
-            <button data-page="add-bot-page" id="add-bot-nav-button" class="nav-button" title="Add/Manage Bots">
-                 <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                <span>Manage</span>
+            <button id="add-bot-nav-button" class="nav-button add-button">
+                <span class="material-symbols-outlined">add_circle</span>
+                <span>Add Bot</span>
             </button>
-            <button data-page="profile-page" class="nav-button" title="Profile">
-                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <button data-page="profile-page" class="nav-button">
+                <span class="material-symbols-outlined">person</span>
                 <span>Profile</span>
             </button>
         </nav>
-    </div>
 
-    <!-- Popups -->
-    <div id="earn-popup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-popup" data-popup="earn-popup">&times;</span>
-            <h2>💰 Earn Points!</h2>
-            <p>Watch a short ad to earn 10 points.</p>
-            <p class="text-muted">(Requires completion. Cooldown: 30 mins)</p>
-            <button id="watch-ad-button">Watch Ad</button>
-            <p id="ad-status" class="popup-status"></p>
-        </div>
-    </div>
-
-    <div id="add-bot-popup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-popup" data-popup="add-bot-popup">&times;</span>
-            <h2 id="popup-title">Add New Bot</h2>
-            <form id="add-bot-form">
-                <input type="hidden" id="edit-bot-id">
-                <div class="form-group">
+        <!-- Popups -->
+        <div id="add-bot-popup" class="popup">
+            <div class="popup-content">
+                <span class="close-popup" data-popup="add-bot-popup">×</span>
+                <h2>Add New Bot</h2>
+                <form id="add-bot-form">
+                    <input type="hidden" id="edit-bot-id"> <!-- For editing existing bots -->
                     <label for="bot-name">Bot Name *</label>
                     <input type="text" id="bot-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="bot-description">Bot Description *</label>
+
+                    <label for="bot-description">Description *</label>
                     <textarea id="bot-description" rows="3" required></textarea>
-                </div>
-                <div class="form-group">
+
                     <label for="bot-link">Bot Link (t.me/...) *</label>
-                    <input type="url" id="bot-link" placeholder="https://t.me/your_bot" required>
-                </div>
-                <div class="form-group">
-                    <label for="bot-image">Bot Image Link (Optional)</label>
-                    <input type="url" id="bot-image" placeholder="https://.../image.png">
-                </div>
-                <div class="form-group">
-                    <label for="airdrop-name">Airdrop Name (Optional)</label>
-                    <input type="text" id="airdrop-name">
-                </div>
-                 <div class="form-group">
-                    <label for="airdrop-points">Total Airdrop Points (Optional)</label>
-                    <input type="number" id="airdrop-points" min="0">
-                </div>
-                <div class="form-group">
-                    <label for="telegram-community">Community Link (Optional)</label>
-                    <input type="url" id="telegram-community" placeholder="https://t.me/your_group">
-                </div>
-                <button type="submit" id="submit-bot-button">Add Bot</button>
-                 <button type="button" id="delete-bot-button" style="display: none; margin-top: 10px;">Delete Bot</button>
-            </form>
+                    <input type="url" id="bot-link" required placeholder="https://t.me/YourBotUsername">
+
+                    <label for="bot-image">Image Link (Optional)</label>
+                    <input type="url" id="bot-image" placeholder="https://...">
+
+                    <label for="bot-community">Telegram Community (Optional)</label>
+                    <input type="url" id="bot-community" placeholder="https://t.me/YourGroupOrChannel">
+
+                    <label for="bot-airdrop-name">Airdrop Name (Optional)</label>
+                    <input type="text" id="bot-airdrop-name">
+
+                    <label for="bot-airdrop-points">Airdrop Points (Optional)</label>
+                    <input type="number" id="bot-airdrop-points">
+
+                    <label for="bot-active">
+                        <input type="checkbox" id="bot-active" checked> Make Active (Visible)?
+                    </label>
+
+                    <button type="submit" id="submit-bot-button">Add Bot</button>
+                    <button type="button" class="cancel-button" data-popup="add-bot-popup">Cancel</button>
+                </form>
+            </div>
         </div>
+
+        <div id="daily-share-popup" class="popup">
+             <div class="popup-content">
+                 <span class="close-popup" data-popup="daily-share-popup">×</span>
+                 <h2>Daily Share Bonus!</h2>
+                 <p>Share the app today to earn <span id="daily-share-amount">?</span> points!</p>
+                 <button id="claim-daily-share-button">Claim Bonus</button>
+                 <p id="daily-share-status"></p>
+            </div>
+        </div>
+
+         <div id="boost-popup" class="popup">
+             <div class="popup-content">
+                 <span class="close-popup" data-popup="boost-popup">×</span>
+                 <h2>Boost Bot</h2>
+                 <p>Make your bot appear in the Trending section!</p>
+                 <input type="hidden" id="boost-bot-id">
+                 <div class="boost-options">
+                     <button class="boost-option" data-duration="1" data-cost="1000">Boost for 1 Day (1000 Points)</button>
+                     <button class="boost-option" data-duration="2" data-cost="2000">Boost for 2 Days (2000 Points)</button>
+                     <button class="boost-option" data-duration="7" data-cost="10000">Boost for 1 Week (10000 Points)</button>
+                 </div>
+                 <p id="boost-status" style="margin-top: 10px;"></p>
+                 <button type="button" class="cancel-button" data-popup="boost-popup">Cancel</button>
+            </div>
+        </div>
+
+         <div id="info-popup" class="popup">
+            <div class="popup-content">
+                <span class="close-popup" data-popup="info-popup">×</span>
+                <h2 id="info-popup-title">Info</h2>
+                <p id="info-popup-message"></p>
+                <button type="button" class="cancel-button" data-popup="info-popup">OK</button>
+            </div>
+        </div>
+
     </div>
 
-     <div id="boost-popup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-popup" data-popup="boost-popup">&times;</span>
-            <h2>🚀 Boost Your Bot!</h2>
-            <p>Feature your bot in Trending. Cost deducted from points.</p>
-            <input type="hidden" id="boost-bot-id">
-             <div class="boost-options">
-                 <button class="boost-option" data-duration="1" data-cost="1000">1 Day (1,000 Points)</button>
-                 <button class="boost-option" data-duration="2" data-cost="2000">2 Days (2,000 Points)</button>
-                 <button class="boost-option" data-duration="7" data-cost="10000">1 Week (10,000 Points)</button>
-             </div>
-             <p id="boost-status" class="popup-status"></p>
-        </div>
-    </div>
-
-     <!-- Send Points Popup -->
-    <div id="send-points-popup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-popup" data-popup="send-points-popup">&times;</span>
-            <h2>💸 Send Points</h2>
-            <p>Transfer points to another user.</p>
-            <form id="send-points-form">
-                <div class="form-group">
-                    <label for="recipient-username">Recipient Username *</label>
-                    <input type="text" id="recipient-username" placeholder="@username" required>
-                </div>
-                <div class="form-group">
-                    <label for="send-amount">Amount *</label>
-                    <input type="number" id="send-amount" placeholder="0" required min="1">
-                </div>
-                <button type="submit" id="confirm-send-button">Send Points</button>
-                <p id="send-status" class="popup-status"></p>
-            </form>
-        </div>
-    </div>
-
-
-    <!-- Custom Alert Popup -->
-    <div id="custom-alert-popup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-popup" data-popup="custom-alert-popup">&times;</span>
-            <h2 id="custom-alert-title">Alert</h2>
-            <p id="custom-alert-message">Message goes here.</p>
-            <button class="close-popup-button" data-popup="custom-alert-popup">OK</button>
-        </div>
-    </div>
-
-
-    <script>
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-             apiKey: "AIzaSyBW1WPXUN8DYhT6npZQYoQ3l4J-jFSbzfg", // Replace with your actual API key
-             authDomain: "ab-studio-marketcap.firebaseapp.com",
-             databaseURL: "https://ab-studio-marketcap-default-rtdb.firebaseio.com",
-             projectId: "ab-studio-marketcap",
-             storageBucket: "ab-studio-marketcap.firebasestorage.app",
-             messagingSenderId: "115268088088",
-             appId: "1:115268088088:web:65643a047f92bfaa66ee6d"
-        };
-
-        // --- Constants ---
-        const AD_REWARD = 10;
-        const AD_COOLDOWN_MINUTES = 30;
-        const LIKE_REWARD_FOR_ADDER = 10;
-        const MIN_SEND_AMOUNT = 1; // Minimum points to send
-
-        // --- Telegram Elements & Data ---
-        const tg = window.Telegram.WebApp;
-        let currentUser = null;
-        let userId = null;
-        let userFirstName = 'Guest';
-        let userLastName = '';
-        let userName = ''; // Telegram username (may be null)
-        let userPoints = 0;
-        let userLikes = {};
-        let userTransactions = [];
-
-        // --- Firebase Refs ---
-        let db;
-        let userRef;
-        let botsRef;
-        let commentsRef;
-        let transactionsRef;
-        let usersBaseRef; // Ref to the base 'users' path
-
-        // --- DOM Elements (Grouped for clarity) ---
-        // Pages & Core Layout
-        const appElement = document.getElementById('app');
-        const pages = document.querySelectorAll('.page');
-        const navbar = document.getElementById('navbar');
-        const navButtons = document.querySelectorAll('.nav-button');
-        const loadingPage = document.getElementById('loading-page');
-        const errorPage = document.getElementById('error-page');
-        const errorMessage = document.getElementById('error-message');
-        // Home Page
-        const homePage = document.getElementById('home-page');
-        const searchInput = document.getElementById('search-bot');
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const botListContainer = document.getElementById('bot-list-container');
-        // Add/Manage Page
-        const addBotPage = document.getElementById('add-bot-page');
-        const myAddedBotsListContainer = document.getElementById('my-added-bots-list');
-        // Profile Page
-        const profilePage = document.getElementById('profile-page');
-        const profileAvatar = document.getElementById('profile-avatar');
-        const profileFullName = document.getElementById('profile-fullname');
-        const profileFname = document.getElementById('profile-fname');
-        const profileLname = document.getElementById('profile-lname');
-        const profileUsername = document.getElementById('profile-username');
-        const profileChatId = document.getElementById('profile-chat-id');
-        const profilePoints = document.getElementById('profile-points');
-        const earnPointsButton = document.getElementById('earn-points-button');
-        const sendPointsButton = document.getElementById('send-points-button'); // New button
-        const transactionListContainer = document.getElementById('transaction-list');
-        // Bot Detail Page
-        const botDetailPage = document.getElementById('bot-detail-page');
-        const botDetailContent = document.getElementById('bot-detail-content');
-        const botDetailName = document.getElementById('detail-bot-name');
-        const backToHomeButton = document.getElementById('back-to-home-button');
-        const commentsSection = document.getElementById('bot-comments-section');
-        const commentsList = document.getElementById('comments-list');
-        const newCommentText = document.getElementById('new-comment-text');
-        const submitCommentButton = document.getElementById('submit-comment-button');
-        // Popups
-        const earnPopup = document.getElementById('earn-popup');
-        const watchAdButton = document.getElementById('watch-ad-button');
-        const adStatus = document.getElementById('ad-status');
-        const addBotPopup = document.getElementById('add-bot-popup');
-        const addBotForm = document.getElementById('add-bot-form');
-        const addBotNavButton = document.getElementById('add-bot-nav-button');
-        const popupTitle = document.getElementById('popup-title');
-        const submitBotButton = document.getElementById('submit-bot-button');
-        const deleteBotButton = document.getElementById('delete-bot-button');
-        const editBotIdInput = document.getElementById('edit-bot-id');
-        const boostPopup = document.getElementById('boost-popup');
-        const boostBotIdInput = document.getElementById('boost-bot-id');
-        const boostOptionsContainer = boostPopup.querySelector('.boost-options');
-        const boostStatus = document.getElementById('boost-status');
-        const sendPointsPopup = document.getElementById('send-points-popup'); // New popup
-        const sendPointsForm = document.getElementById('send-points-form');   // New form
-        const recipientUsernameInput = document.getElementById('recipient-username');
-        const sendAmountInput = document.getElementById('send-amount');
-        const confirmSendButton = document.getElementById('confirm-send-button');
-        const sendStatus = document.getElementById('send-status');
-        const customAlertPopup = document.getElementById('custom-alert-popup');
-        const customAlertTitle = document.getElementById('custom-alert-title');
-        const customAlertMessage = document.getElementById('custom-alert-message');
-
-
-        // --- App State ---
-        let currentBotList = [];
-        let displayedBots = [];
-        let currentOpenBotId = null;
-        let currentOpenBotData = null;
-        let botCommentsListener = null;
-        let userProfileListener = null;
-        let botsListener = null;
-        let transactionsListener = null;
-        let currentTab = 'all-bots';
-        let isInitializing = true; // Flag to manage initial load steps
-
-        // --- Initialization ---
-        window.onload = () => {
-            initializeApp();
-        };
-
-        function initializeApp() {
-             isInitializing = true;
-            try {
-                tg.ready();
-                tg.expand();
-                // Use themeParams if available for more native feel
-                const themeBgColor = tg.themeParams?.bg_color || '#1a1a1a';
-                const themeHeaderBgColor = tg.themeParams?.secondary_bg_color || '#252525';
-                document.documentElement.style.setProperty('--bg-secondary', themeBgColor);
-                document.documentElement.style.setProperty('--bg-tertiary', themeHeaderBgColor);
-                // Adjust text based on theme? More complex, skip for now
-                tg.setHeaderColor(themeHeaderBgColor);
-                tg.setBackgroundColor(themeBgColor);
-
-                console.log("Telegram Web App SDK Initialized");
-                console.log("Theme Params:", tg.themeParams);
-                console.log("Init Data (unsafe):", tg.initDataUnsafe);
-
-                if (!tg.initDataUnsafe?.user?.id || !tg.initData) {
-                    throw new Error("Invalid Telegram context or missing user ID.");
-                }
-
-                currentUser = tg.initDataUnsafe.user;
-                userId = currentUser.id.toString();
-                userFirstName = currentUser.first_name || 'User';
-                userLastName = currentUser.last_name || '';
-                userName = currentUser.username; // Store original username (case-sensitive)
-
-                console.log(`User ID: ${userId}, Name: ${userFirstName}, Username: ${userName}`);
-                submitCommentButton.disabled = false;
-
-                // Initialize Firebase
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.database();
-                console.log("Firebase Initialized");
-
-                // Define main refs
-                usersBaseRef = db.ref('users'); // Ref to base users path
-                userRef = usersBaseRef.child(userId); // Ref to current user's data
-                botsRef = db.ref('bots');
-                commentsRef = db.ref('comments');
-                transactionsRef = db.ref(`transactions/${userId}`); // Path for current user's transactions
-
-                setupEventListeners();
-                loadUserProfileAndData(); // Start data loading chain
-
-            } catch (error) {
-                console.error("Initialization Error:", error);
-                errorMessage.textContent = `Error: ${error.message}. Please ensure you're using the latest Telegram version and the app is launched correctly.`;
-                showPage('error-page');
-                loadingPage.classList.remove('active');
-                isInitializing = false;
-            }
-        }
-
-        // --- Page Navigation ---
-        function showPage(pageId) {
-             // Ensure loading is hidden if we navigate away explicitly
-             if (!isInitializing && loadingPage.classList.contains('active')) {
-                 loadingPage.classList.remove('active');
-             }
-
-            pages.forEach(page => page.classList.remove('active'));
-            const activePage = document.getElementById(pageId);
-            if (activePage) {
-                activePage.classList.add('active');
-                activePage.scrollTop = 0;
-                navButtons.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.page === pageId || (pageId === 'bot-detail-page' && btn.dataset.page === 'home-page'));
-                });
-                // Detach listeners
-                if (pageId !== 'bot-detail-page' && botCommentsListener && currentOpenBotId) {
-                    commentsRef.child(currentOpenBotId).off('value', botCommentsListener);
-                    botCommentsListener = null;
-                    currentOpenBotId = null; // Clear open bot when leaving detail page
-                    console.log("Detached comment listener");
-                }
-                // Detach transaction listener if navigating away from profile
-                 if (pageId !== 'profile-page' && transactionsListener) {
-                     transactionsRef.off('value', transactionsListener);
-                     transactionsListener = null;
-                     console.log("Detached transactions listener");
-                 }
-
-                // Trigger loads for specific pages
-                if (pageId === 'add-bot-page') loadMyAddedBots();
-                if (pageId === 'profile-page' && !transactionsListener) loadTransactions(); // Load only if not already listening
-
-            } else {
-                console.warn(`Page with id "${pageId}" not found. Showing home.`);
-                showPage('home-page');
-            }
-        }
-
-        // --- Popup Handling (Minor refinement) ---
-        function showPopup(popupId) {
-            const popup = document.getElementById(popupId);
-            if (popup) {
-                popup.classList.add('active');
-                // Reset specific popup states when shown
-                if (popupId === 'send-points-popup') {
-                    sendPointsForm.reset();
-                    sendStatus.textContent = '';
-                    sendStatus.className = 'popup-status'; // Reset class
-                    confirmSendButton.disabled = false;
-                }
-                 if (popupId === 'boost-popup') {
-                    boostStatus.textContent = '';
-                    boostStatus.className = 'popup-status';
-                 }
-                 if (popupId === 'earn-popup') adStatus.textContent = '';
-            }
-        }
-        function hidePopup(popupId) {
-            const popup = document.getElementById(popupId);
-            if (popup) popup.classList.remove('active');
-            if (popupId === 'add-bot-popup') resetAddBotForm();
-        }
-        function showAlert(title = "Alert", message = "", type = "info") {
-            customAlertTitle.textContent = title;
-            customAlertMessage.textContent = message;
-            customAlertTitle.className = '';
-            if (type === 'success') customAlertTitle.classList.add('text-success');
-            else if (type === 'error') customAlertTitle.classList.add('text-error');
-            else if (type === 'warning') customAlertTitle.classList.add('text-warning');
-            showPopup('custom-alert-popup');
-        }
-
-        // --- Event Listeners Setup ---
-        function setupEventListeners() {
-            // Navigation
-            navbar.addEventListener('click', (e) => {
-                const button = e.target.closest('.nav-button');
-                if (!button || !button.dataset.page) return;
-                if (button.id === 'add-bot-nav-button') {
-                    // Special case: Show add/manage page, then user clicks '+' inside popup trigger (or directly trigger popup?)
-                    // Let's keep it simple: navigate first, then user clicks the "+" inside if they want.
-                    // Or modify the button to *always* open the add popup, regardless of current page? Let's try that.
-                    // showPage('add-bot-page'); // Navigate to manage page first
-                    openAddBotPopup(); // Direct popup trigger might be better UX for '+' button
-
-                } else {
-                    showPage(button.dataset.page);
-                }
-            });
-
-            // Back button
-            backToHomeButton.addEventListener('click', () => showPage('home-page'));
-
-            // Profile Buttons
-            earnPointsButton.addEventListener('click', () => showPopup('earn-popup'));
-            sendPointsButton.addEventListener('click', () => showPopup('send-points-popup')); // Listener for new button
-
-            // Earn Points Popup
-            watchAdButton.addEventListener('click', watchAdForPoints);
-
-            // Add/Edit Bot Popup / Form
-            addBotForm.addEventListener('submit', handleAddOrUpdateBot);
-            deleteBotButton.addEventListener('click', handleDeleteBot);
-
-            // Send Points Form
-            sendPointsForm.addEventListener('submit', handleSendPoints); // Listener for new form
-
-            // Close Popups
-            document.querySelectorAll('.close-popup, .close-popup-button').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                     // Find the closest popup overlay ID
-                     const popupOverlay = e.target.closest('.popup-overlay');
-                     if(popupOverlay) {
-                        hidePopup(popupOverlay.id);
-                     } else { // Fallback for buttons outside content but inside overlay
-                         const popupId = btn.dataset.popup;
-                         if (popupId) hidePopup(popupId);
-                     }
-                });
-            });
-            document.querySelectorAll('.popup-overlay').forEach(overlay => {
-                overlay.addEventListener('click', (e) => { if (e.target === overlay) hidePopup(overlay.id); });
-            });
-
-            // Search Input
-            searchInput.addEventListener('input', debounce(filterAndRenderBots, 350)); // Render on search change
-
-            // Tab Buttons
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    if (button.classList.contains('active')) return;
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    currentTab = button.dataset.tab;
-                    filterAndRenderBots();
-                });
-            });
-
-             // Boost Popup options
-            boostOptionsContainer.addEventListener('click', (e) => {
-                const button = e.target.closest('.boost-option');
-                if (button && !button.disabled) {
-                    button.disabled = true; // Prevent double click during async op
-                    const duration = parseInt(button.dataset.duration, 10);
-                    const cost = parseInt(button.dataset.cost, 10);
-                    const botId = boostBotIdInput.value;
-                    purchaseBoost(botId, duration, cost).finally(() => {
-                        // Re-enable only if popup is still open and wasn't successful
-                        if (boostPopup.classList.contains('active') && !boostStatus.classList.contains('success')) {
-                            button.disabled = false;
-                        }
-                    });
-                }
-            });
-
-            // Comment Submission
-            submitCommentButton.addEventListener('click', handleSubmitComment);
-
-            // Event delegation
-            document.body.addEventListener('click', handleDynamicClicks);
-        }
-
-        // --- Dynamic Click Handler (Refined) ---
-        function handleDynamicClicks(event) {
-            const target = event.target;
-            const button = target.closest('button'); // Find closest button
-
-            // Like button (Card)
-            if (button?.matches('.like-button') || button?.closest('.like-button')) {
-                const btn = button?.closest('.like-button');
-                const botCard = target.closest('.bot-card');
-                if (btn && !btn.disabled && botCard?.dataset.botId) {
-                    btn.disabled = true;
-                    toggleLikeBot(botCard.dataset.botId, btn).finally(() => btn.disabled = false);
-                }
-                return;
-            }
-
-             // Like button (Detail)
-             if (button?.matches('.detail-like-button') || button?.closest('.detail-like-button')) {
-                 const btn = button?.closest('.detail-like-button');
-                 if (btn && !btn.disabled && currentOpenBotId) {
-                    btn.disabled = true;
-                     toggleLikeBot(currentOpenBotId, btn).finally(() => btn.disabled = false);
-                 }
-                 return;
-             }
-
-             // Boost button (Detail)
-            if (button?.matches('.detail-boost-button') || button?.closest('.detail-boost-button')) {
-                 if (!button.disabled && currentOpenBotId) openBoostPopup(currentOpenBotId);
-                 return;
-            }
-
-            // Edit button (My Bots list)
-            if (button?.matches('.edit-my-bot') || button?.closest('.edit-my-bot')) {
-                if (!button.disabled && button.dataset.botId) openEditBotPopup(button.dataset.botId);
-                return;
-            }
-
-            // Boost button (My Bots list)
-            if (button?.matches('.boost-my-bot') || button?.closest('.boost-my-bot')) {
-                 if (!button.disabled && button.dataset.botId) openBoostPopup(button.dataset.botId);
-                 return;
-            }
-
-            // Click on Bot Card -> View Details (Ensure not clicking a button inside)
-            const botCard = target.closest('.bot-card');
-            if (botCard && !target.closest('button')) { // Check if click target is not inside *any* button within the card
-                 if (botCard.dataset.botId) viewBotDetails(botCard.dataset.botId);
-                 return;
-            }
-        }
-
-
-        // --- Firebase Functions ---
-
-        function loadUserProfileAndData() {
-            if (!userRef) return;
-            console.log("Setting up user profile listener...");
-            if (userProfileListener) userRef.off('value', userProfileListener);
-
-            userProfileListener = userRef.on('value', snapshot => {
-                if (snapshot.exists()) {
-                    const userData = snapshot.val();
-                    userPoints = userData.points || 0;
-                    userLikes = userData.likes || {};
-                    // Update UI based on fetched data
-                    updateProfileUI(userFirstName, userLastName, userName, userId, userPoints);
-
-                     // Only proceed with loading other data once user profile is confirmed
-                     if (isInitializing) {
-                         console.log("User profile loaded/created, loading initial bots...");
-                         loadBots(); // Load bots after profile confirmed
-                         // Don't load transactions here, load when profile page is shown
-                     } else {
-                          // If not initializing, just update relevant parts
-                          if (currentBotList.length > 0) filterAndRenderBots(); // Update like states if needed
-                          if (currentOpenBotData) renderBotDetails(currentOpenBotData); // Update detail page if open
-                     }
-
-                } else {
-                    // Create profile if doesn't exist
-                    console.log("User profile doesn't exist, creating...");
-                    userRef.set({
-                        firstName: userFirstName, lastName: userLastName, username: userName || null,
-                        chatId: userId, points: 0, createdAt: firebase.database.ServerValue.TIMESTAMP, likes: {}
-                    })
-                    .then(() => {
-                         console.log("User profile created.");
-                         userPoints = 0; userLikes = {};
-                         updateProfileUI(userFirstName, userLastName, userName, userId, userPoints);
-                          // Now load bots after creation
-                          if (isInitializing) {
-                             console.log("User profile created, loading initial bots...");
-                             loadBots();
-                          }
-                    })
-                    .catch(handleFirebaseError("creating user profile"));
-                }
-
-                // Once the initial user load/create is done, mark initialization as complete
-                if (isInitializing) {
-                    // Defer hiding loading/showing home until bots are also loaded initially
-                    // isInitializing = false; // Moved this check inside loadBots callback
-                }
-
-            }, (error) => {
-                handleFirebaseError("reading user profile")(error);
-                errorMessage.textContent = "Error loading your profile. App may not function correctly.";
-                showPage('error-page');
-                loadingPage.classList.remove('active');
-                isInitializing = false;
-            });
-        }
-
-        function loadBots() {
-            console.log("Setting up bots listener...");
-            if (botsListener) botsRef.off('value', botsListener);
-
-            // Ensure the placeholder is shown while loading
-             botListContainer.innerHTML = `<p class="text-muted" style="text-align: center; padding: 30px 15px;">Loading bots...</p>`;
-
-            botsListener = botsRef.orderByChild('active').equalTo(true).onValue(snapshot => {
-                currentBotList = [];
-                if (snapshot.exists()) {
-                    snapshot.forEach(childSnapshot => {
-                        const botData = childSnapshot.val();
-                        // Basic validation - skip if critical data missing?
-                         if (botData && botData.name && botData.description && botData.link) {
-                             botData.id = childSnapshot.key;
-                             botData.likeCount = botData.likeCount || 0;
-                             currentBotList.push(botData);
-                         } else {
-                             console.warn("Skipping invalid bot data:", childSnapshot.key, botData);
-                         }
-                    });
-                    console.log(`Loaded ${currentBotList.length} valid active bots.`);
-                } else {
-                    console.log("No active bots found in DB.");
-                }
-                filterAndRenderBots(); // Render based on current view
-
-                // Update detail view if open
-                if (currentOpenBotId) {
-                     const updatedBotData = currentBotList.find(bot => bot.id === currentOpenBotId);
-                     if (updatedBotData) {
-                         currentOpenBotData = updatedBotData;
-                         renderBotDetails(updatedBotData);
-                     } else {
-                         showAlert("Bot Unavailable", "The bot you were viewing is no longer available.", "info");
-                         showPage('home-page');
-                     }
-                }
-                // Hide loading and show home page after the *first* successful bot load during init
-                 if (isInitializing) {
-                     isInitializing = false;
-                     loadingPage.classList.remove('active');
-                     showPage('home-page');
-                     console.log("Initial bot load complete. App ready.");
-                 }
-
-            }, (error) => {
-                handleFirebaseError("loading bots")(error);
-                 botListContainer.innerHTML = `<p class="text-error" style="text-align: center; padding: 30px 15px;">Error loading bots.</p>`;
-                 if (isInitializing) {
-                     isInitializing = false;
-                     loadingPage.classList.remove('active');
-                     showPage('home-page'); // Show home even if bots fail, but show error msg
-                 }
-            });
-        }
-
-        function loadMyAddedBots() { /* ... unchanged ... */
-            if (!userId) return;
-            myAddedBotsListContainer.innerHTML = `<p class="text-muted" style="text-align: center;">Loading your bots...</p>`;
-            botsRef.orderByChild('adderUserId').equalTo(userId).once('value')
-                .then(snapshot => {
-                    const myBots = [];
-                    if (snapshot.exists()) {
-                        snapshot.forEach(childSnapshot => {
-                            const botData = childSnapshot.val();
-                            botData.id = childSnapshot.key;
-                            myBots.push(botData);
-                        });
-                    }
-                    renderMyAddedBots(myBots);
-                })
-                .catch(error => {
-                    handleFirebaseError("loading my added bots")(error);
-                    myAddedBotsListContainer.innerHTML = `<p class="text-error" style="text-align: center;">Error loading your bots.</p>`;
-                });
-        }
-
-        function loadTransactions() { /* ... unchanged ... */
-             if (!transactionsRef) return;
-             console.log("Setting up transactions listener...");
-             transactionListContainer.innerHTML = `<p class="text-muted" style="text-align: center;">Loading transaction history...</p>`;
-             if (transactionsListener) transactionsRef.off('value', transactionsListener);
-
-             transactionsListener = transactionsRef.orderByChild('timestamp').limitToLast(30) // Limit history length
-                 .on('value', snapshot => {
-                     userTransactions = [];
-                     if (snapshot.exists()) {
-                         snapshot.forEach(txSnapshot => {
-                             userTransactions.push({ id: txSnapshot.key, ...txSnapshot.val() });
-                         });
-                         userTransactions.reverse(); // Newest first
-                     }
-                     renderTransactions(userTransactions);
-                 }, (error) => {
-                     handleFirebaseError("loading transactions")(error);
-                     transactionListContainer.innerHTML = `<p class="text-error" style="text-align: center;">Error loading history.</p>`;
-                 });
-        }
-
-        // Add/Update Bot - Added basic URL validation helper
-        async function handleAddOrUpdateBot(event) { /* ... largely unchanged, added URL validation ... */
-            event.preventDefault();
-            if (!userId) return showAlert("Error", "User not identified.", "error");
-
-            const botId = editBotIdInput.value;
-            const isEditing = !!botId;
-
-            const botData = {
-                name: document.getElementById('bot-name').value.trim(),
-                description: document.getElementById('bot-description').value.trim(),
-                link: document.getElementById('bot-link').value.trim(),
-                image: document.getElementById('bot-image').value.trim() || null,
-                airdropName: document.getElementById('airdrop-name').value.trim() || null,
-                airdropPoints: document.getElementById('airdrop-points').value ? parseInt(document.getElementById('airdrop-points').value, 10) : null,
-                telegramCommunity: document.getElementById('telegram-community').value.trim() || null,
-            };
-
-            // Validation
-            if (!botData.name || !botData.description || !botData.link) return showAlert("Validation Error", "Bot Name, Description, and Link are required.", "error");
-            if (!isValidTelegramLink(botData.link) && !isValidHttpUrl(botData.link)) return showAlert("Validation Error", "Invalid Bot Link (must be t.me/... or http(s)://...).", "error");
-            if (botData.image && !isValidHttpUrl(botData.image)) return showAlert("Validation Error", "Invalid Image Link (must start with http(s)://).", "error");
-            if (botData.telegramCommunity && !isValidTelegramLink(botData.telegramCommunity) && !isValidHttpUrl(botData.telegramCommunity)) return showAlert("Validation Error", "Invalid Community Link (t.me/... or http(s)://...).", "error");
-
-            setFormDisabled(addBotForm, true, isEditing ? 'Updating...' : 'Adding...');
-
-            try {
-                if (isEditing) {
-                    botData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
-                    await db.ref(`bots/${botId}`).update(botData);
-                    showAlert("Success", "Bot updated successfully!", "success");
-                } else {
-                    botData.adderUserId = userId;
-                    botData.adderUsername = userName || null;
-                    botData.adderFirstName = userFirstName;
-                    botData.likeCount = 0;
-                    botData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-                    botData.active = true;
-                    botData.boostedUntil = 0;
-                    const newBotRef = db.ref('bots').push();
-                    await newBotRef.set(botData);
-                    showAlert("Success", "Bot added successfully!", "success");
-                }
-                hidePopup('add-bot-popup');
-                if (document.getElementById('add-bot-page').classList.contains('active')) {
-                    loadMyAddedBots();
-                }
-            } catch (error) {
-                handleFirebaseError(isEditing ? "updating bot" : "adding bot")(error);
-            } finally {
-                setFormDisabled(addBotForm, false, isEditing ? 'Update Bot' : 'Add Bot');
-            }
-        }
-
-        function handleDeleteBot() { /* ... unchanged ... */
-            const botId = editBotIdInput.value;
-             if (!botId || !userId) return;
-             const botName = document.getElementById('bot-name').value || 'this bot';
-
-             tg.showConfirm(`Are you sure you want to delete "${botName}"? This marks it inactive.`, async (confirmed) => {
-                 if (confirmed) {
-                    setFormDisabled(addBotForm, true, 'Deleting...');
-                    try {
-                        const botToDeleteRef = db.ref(`bots/${botId}`);
-                        await botToDeleteRef.update({ active: false, deletedAt: firebase.database.ServerValue.TIMESTAMP });
-                        showAlert("Deleted", `Bot "${botName}" marked as inactive.`, "success");
-                        hidePopup('add-bot-popup');
-                        if (document.getElementById('add-bot-page').classList.contains('active')) loadMyAddedBots();
-                    } catch (error) {
-                        handleFirebaseError("deleting bot")(error);
-                    } finally {
-                         setFormDisabled(addBotForm, false, 'Update Bot');
-                    }
-                 }
-             });
-        }
-
-        async function toggleLikeBot(botId, likeButtonElement) { /* ... mostly unchanged, added check for owner ... */
-             if (!userId || !botId) return;
-
-             const botRef = db.ref(`bots/${botId}`);
-             const userLikesRef = userRef.child(`likes/${botId}`);
-             const liked = userLikes.hasOwnProperty(botId) && userLikes[botId] === true;
-             const newLikeStatus = !liked;
-
-             const botData = currentBotList.find(b => b.id === botId) || currentOpenBotData;
-             if (botData && botData.adderUserId === userId) {
-                 // showAlert("Info", "You cannot like your own bot.", "info"); // Already handled by disabling button?
-                 return; // Prevent action if button wasn't disabled properly
-             }
-
-            try {
-                 const transactionResult = await botRef.child('likeCount').transaction(currentCount => {
-                     if (currentCount === null && !newLikeStatus) return 0;
-                     return (currentCount || 0) + (newLikeStatus ? 1 : -1);
-                 });
-                 if (!transactionResult.committed) throw new Error("Like count transaction failed.");
-
-                 await userLikesRef.set(newLikeStatus ? true : null);
-                 console.log(`User ${userId} ${newLikeStatus ? 'liked' : 'unliked'} bot ${botId}`);
-
-                 // Update UI
-                 if (likeButtonElement) {
-                    likeButtonElement.classList.toggle('liked', newLikeStatus);
-                    likeButtonElement.innerHTML = newLikeStatus ? '❤️' : '🤍'; // Update heart icon
-                    likeButtonElement.title = newLikeStatus ? "Unlike this bot" : "Like this bot";
-                     // Update counts
-                     const currentCount = transactionResult.snapshot.val();
-                      document.querySelectorAll(`.bot-card[data-bot-id="${botId}"] .like-count`).forEach(el => el.textContent = currentCount);
-                      const detailCount = document.getElementById('detail-like-count');
-                      if (detailCount && currentOpenBotId === botId) detailCount.textContent = currentCount;
-                 }
-
-                 // Award points if LIKING
-                 if (newLikeStatus) {
-                     const finalBotData = await botRef.once('value');
-                     if (finalBotData.exists()) {
-                         const adderId = finalBotData.val().adderUserId;
-                         const botName = finalBotData.val().name;
-                          if (adderId && adderId !== userId) {
-                              await awardPoints(adderId, LIKE_REWARD_FOR_ADDER, `Like for: ${botName}`);
-                          }
-                     }
-                 }
-            } catch (error) {
-                handleFirebaseError("toggling like")(error);
-                 // Revert UI on error
-                 if (likeButtonElement) {
-                     likeButtonElement.classList.toggle('liked', liked); // Original state
-                     likeButtonElement.innerHTML = liked ? '❤️' : '🤍';
-                     likeButtonElement.title = liked ? "Unlike this bot" : "Like this bot";
-                 }
-            }
-        }
-
-        function awardPoints(targetUserId, amount, reason = "Points awarded") { /* ... unchanged ... */
-            if (!targetUserId || !db || amount <= 0) return Promise.resolve(false);
-            const targetUserPointsRef = db.ref(`users/${targetUserId}/points`);
-            console.log(`Attempting award: ${amount} to ${targetUserId} for ${reason}`);
-            return targetUserPointsRef.transaction(p => (p || 0) + amount)
-             .then(r => {
-                 if(r.committed) { console.log(`Awarded ${amount} points to ${targetUserId}. New: ${r.snapshot.val()}`); logTransaction(targetUserId, amount, reason); return true; }
-                 else { console.warn(`Point award tx aborted for ${targetUserId}.`); return false; }
-             }).catch(err => { handleFirebaseError(`awarding points to ${targetUserId}`)(err); return Promise.reject(err); });
-        }
-
-        function deductPoints(targetUserId, amount, reason = "Points deducted") { /* ... unchanged ... */
-            if (!targetUserId || !db || amount <= 0) return Promise.resolve(false);
-            const targetUserPointsRef = db.ref(`users/${targetUserId}/points`);
-            console.log(`Attempting deduct: ${amount} from ${targetUserId} for ${reason}`);
-            return targetUserPointsRef.transaction(p => { const c = p || 0; if (c < amount) return; return c - amount; })
-            .then(r => {
-                if(r.committed) { console.log(`Deducted ${amount} points from ${targetUserId}. New: ${r.snapshot.val()}`); logTransaction(targetUserId, -amount, reason); return true; }
-                else { console.warn(`Point deduction tx aborted for ${targetUserId} (Insufficient funds?).`); return false; }
-            }).catch(err => { handleFirebaseError(`deducting points from ${targetUserId}`)(err); return Promise.reject(err); });
-        }
-
-        function logTransaction(targetUserId, amount, reason) { /* ... unchanged ... */
-             if (!targetUserId || !db) return;
-             const userTxRef = db.ref(`transactions/${targetUserId}`); // Ensure this ref is correct if structure changed
-             userTxRef.push({ amount, reason, timestamp: firebase.database.ServerValue.TIMESTAMP })
-                .catch(handleFirebaseError("logging transaction"));
-        }
-
-        // --- Send Points Logic ---
-        async function handleSendPoints(event) {
-            event.preventDefault();
-            if (!userId) return; // Should be logged in
-
-            const recipientUsernameRaw = recipientUsernameInput.value.trim();
-            const amountToSend = parseInt(sendAmountInput.value, 10);
-
-            // --- Basic Client-Side Validation ---
-            if (!recipientUsernameRaw) {
-                 setSendStatus("Recipient username cannot be empty.", "error");
-                 return;
-            }
-            // Remove '@' if present for lookup consistency
-             const recipientUsername = recipientUsernameRaw.startsWith('@') ? recipientUsernameRaw.substring(1) : recipientUsernameRaw;
-
-             if (!amountToSend || amountToSend < MIN_SEND_AMOUNT) {
-                 setSendStatus(`Amount must be at least ${MIN_SEND_AMOUNT}.`, "error");
-                 return;
-             }
-             if (amountToSend > userPoints) {
-                 setSendStatus("Insufficient points.", "error");
-                 return;
-             }
-             // Prevent sending to self (check against stored username)
-             if (userName && recipientUsername.toLowerCase() === userName.toLowerCase()) {
-                 setSendStatus("You cannot send points to yourself.", "error");
-                 return;
-             }
-
-            setSendStatus("Processing...", "info", true); // Disable button while processing
-
-             try {
-                 // --- Find Recipient by Username ---
-                 // NOTE: Requires Firebase index on 'username' field in rules for performance!
-                 console.log(`Searching for user with username: ${recipientUsername}`);
-                 const userQuery = usersBaseRef.orderByChild('username').equalTo(recipientUsername).limitToFirst(1);
-                 const snapshot = await userQuery.once('value');
-
-                 if (!snapshot.exists()) {
-                     setSendStatus(`User "${recipientUsernameRaw}" not found.`, "error");
-                     return;
-                 }
-
-                 let recipientUserId = null;
-                 let recipientFirstName = 'User'; // Default if not found in data
-                 snapshot.forEach(childSnapshot => { // Loop (should only be one due to limitToFirst)
-                     recipientUserId = childSnapshot.key;
-                     recipientFirstName = childSnapshot.val()?.firstName || recipientFirstName;
-                 });
-
-                 if (!recipientUserId) { // Should theoretically not happen if snapshot.exists() is true
-                     setSendStatus("Could not identify recipient user ID.", "error");
-                     return;
-                 }
-
-                  // Final check: prevent sending to self based on ID
-                 if (recipientUserId === userId) {
-                     setSendStatus("You cannot send points to yourself.", "error");
-                     return;
-                 }
-
-                 console.log(`Found recipient: ID=${recipientUserId}, Name=${recipientFirstName}`);
-                 setSendStatus(`Sending ${amountToSend} points to ${recipientFirstName}...`, "info", true);
-
-                 // --- Perform Transfer ---
-                 const transferSuccess = await transferPoints(userId, recipientUserId, amountToSend, recipientFirstName);
-
-                 if (transferSuccess) {
-                     setSendStatus(`Successfully sent ${amountToSend} points to ${recipientFirstName}!`, "success");
-                     setTimeout(() => {
-                         hidePopup('send-points-popup');
-                     }, 2000);
-                 } else {
-                     // Error message handled within transferPoints or caught here
-                     // Keep button disabled if error occurred during transfer
-                     setSendStatus(sendStatus.textContent || "Transfer failed. Please try again.", "error", false); // Ensure button re-enabled if error wasn't during transfer itself
-                 }
-
-             } catch (error) {
-                 handleFirebaseError("sending points")(error);
-                 setSendStatus("An error occurred during the transfer.", "error");
-             } finally {
-                // Re-enable button unless status indicates success/ongoing process
-                 if (!sendStatus.classList.contains('success') && !confirmSendButton.disabled ) {
-                     confirmSendButton.disabled = false;
-                 }
-             }
-        }
-
-        // Atomic point transfer function (client-side best effort)
-        async function transferPoints(senderId, recipientId, amount, recipientName) {
-             console.log(`Initiating transfer: ${amount} from ${senderId} to ${recipientId}`);
-             const senderReason = `Sent ${amount} points to ${recipientName}`;
-             const recipientReason = `Received ${amount} points from ${userFirstName}`; // Use sender's name
-
-             try {
-                 // 1. Deduct from sender
-                 const deducted = await deductPoints(senderId, amount, senderReason);
-                 if (!deducted) {
-                     // This likely means insufficient funds, message already shown by handleSendPoints
-                     console.error("Deduction failed during transfer (Insufficient funds).");
-                     setSendStatus("Insufficient points.", "error"); // Update status specifically
-                     return false; // Indicate transfer failure
-                 }
-
-                 // 2. Award to recipient
-                 try {
-                     const awarded = await awardPoints(recipientId, amount, recipientReason);
-                     if (!awarded) {
-                         // Award failed after deduction! Critical issue.
-                         console.error(`CRITICAL: Points deducted from ${senderId}, but award failed for ${recipientId}. Amount: ${amount}`);
-                         // Attempt to log this critical failure state
-                         logTransaction(senderId, 0, `CRITICAL_ERROR: Failed to award ${amount} points to ${recipientId} after deduction.`);
-                         logTransaction(recipientId, 0, `CRITICAL_ERROR: Failed award of ${amount} points from ${senderId}.`);
-                         setSendStatus("Transfer Error: Recipient could not receive points. Points deducted. Contact support.", "error");
-                         // Attempt to refund sender? Very tricky client-side. Best to flag for manual review.
-                         // await awardPoints(senderId, amount, "REFUND: Failed transfer"); // Attempt refund
-                         return false; // Indicate transfer failure
-                     }
-                     // Both steps successful!
-                     console.log("Transfer successful!");
-                     return true;
-
-                 } catch (awardError) {
-                     // Catch errors specifically from the award step
-                     console.error(`CRITICAL: Points deducted from ${senderId}, but award errored for ${recipientId}. Amount: ${amount}`, awardError);
-                     logTransaction(senderId, 0, `CRITICAL_ERROR: Award step failed for ${recipientId} after deduction. Err: ${awardError.message}`);
-                      setSendStatus("Transfer Error: Recipient award failed. Points deducted. Contact support.", "error");
-                      // Attempt refund
-                      // await awardPoints(senderId, amount, "REFUND: Failed transfer award step");
-                     return false; // Indicate transfer failure
-                 }
-
-             } catch (deductError) {
-                 // Catch errors from the deduction step (other than insufficient funds handled by return value false)
-                 console.error("Deduction failed during transfer (Error):", deductError);
-                 setSendStatus("Transfer Error: Could not deduct points.", "error");
-                 // No points deducted, so no refund needed.
-                 return false; // Indicate transfer failure
-             }
-        }
-
-        // Helper to update send points status and button state
-        function setSendStatus(message, type = "info", disableButton = false) {
-             sendStatus.textContent = message;
-             sendStatus.className = `popup-status ${type}`; // Use type for class styling
-             confirmSendButton.disabled = disableButton;
-        }
-
-
-        // --- Ad Integration ---
-        async function watchAdForPoints() { /* ... unchanged ... */
-            if (!userId || !userRef) return;
-            adStatus.textContent = 'Checking eligibility...'; adStatus.className = 'popup-status info';
-            watchAdButton.disabled = true;
-            try {
-                const lastAdTimeSnapshot = await userRef.child('lastAdWatched').once('value');
-                const lastAdTime = lastAdTimeSnapshot.val(); const now = Date.now();
-                if (lastAdTime && (now - lastAdTime < AD_COOLDOWN_MINUTES * 60 * 1000)) {
-                    const minutesRemaining = Math.ceil((AD_COOLDOWN_MINUTES * 60 * 1000 - (now - lastAdTime)) / 60000);
-                    adStatus.textContent = `Please wait ${minutesRemaining} min.`; adStatus.className = 'popup-status info';
-                    showAlert("Cooldown Active", `You can watch another ad in ${minutesRemaining} minute(s).`, "info"); return;
-                }
-                adStatus.textContent = 'Loading ad...'; adStatus.className = 'popup-status info'; console.log("Attempting to show rewarded ad...");
-                await show_9263144(); // Ad SDK Promise
-                console.log("Ad watched successfully!"); adStatus.textContent = `Awarding ${AD_REWARD} points...`; adStatus.className = 'popup-status info';
-                const awarded = await awardPoints(userId, AD_REWARD, "Watched Rewarded Ad");
-                if (awarded) {
-                    await userRef.child('lastAdWatched').set(firebase.database.ServerValue.TIMESTAMP);
-                    adStatus.textContent = `+${AD_REWARD} Points Earned!`; adStatus.className = 'popup-status success';
-                    showAlert("Success!", `You earned ${AD_REWARD} points!`, "success");
-                    setTimeout(() => hidePopup('earn-popup'), 1500);
-                } else { adStatus.textContent = 'Point award failed.'; adStatus.className = 'popup-status error'; showAlert("Error", "Ad watched, but failed to award points.", "error"); }
-            } catch (error) {
-                console.error("Ad process error:", error); adStatus.textContent = 'Ad failed or closed early.'; adStatus.className = 'popup-status error';
-                showAlert("Ad Error", "Could not load or complete the ad. No points awarded.", "error");
-            } finally { watchAdButton.disabled = false; }
-        }
-
-        // --- Bot Boosting ---
-        function openBoostPopup(botId) { /* ... unchanged ... */
-             const botData = currentBotList.find(b => b.id === botId) || currentOpenBotData;
-             if (!botData) return showAlert("Error", "Cannot find bot data.", "error");
-             if (botData.adderUserId !== userId) return showAlert("Permission Denied", "You can only boost your own bots.", "error");
-             if (isBoosted(botData)) return showAlert("Already Boosted", `Boost active until ${new Date(botData.boostedUntil).toLocaleDateString()}.`, "info");
-             if (!botData.active) return showAlert("Bot Inactive", "Inactive bots cannot be boosted.", "warning");
-
-            boostBotIdInput.value = botId;
-            boostStatus.textContent = ''; boostStatus.className = 'popup-status';
-            boostOptionsContainer.querySelectorAll('button').forEach(btn => btn.disabled = false);
-            showPopup('boost-popup');
-        }
-        async function purchaseBoost(botId, durationDays, cost) { /* ... largely unchanged, using setStatus helper ... */
-            if (!userId || !botId) return;
-             setStatus(boostStatus, `Verifying points...`, 'info');
-
-            try {
-                 const deducted = await deductPoints(userId, cost, `Boost bot ${botId} (${durationDays}d)`);
-                 if (!deducted) { setStatus(boostStatus, `Insufficient points (Need ${cost}).`, 'error'); return; }
-
-                 setStatus(boostStatus, `Applying boost...`, 'info');
-                 const now = Date.now();
-                 const boostEndTime = now + durationDays * 24 * 60 * 60 * 1000;
-                 await db.ref(`bots/${botId}`).update({ boostedUntil: boostEndTime });
-
-                 setStatus(boostStatus, `Success! Boosted until ${new Date(boostEndTime).toLocaleString()}.`, 'success');
-                 console.log(`Bot ${botId} boosted until ${boostEndTime}`);
-                 boostOptionsContainer.querySelectorAll('button').forEach(btn => btn.disabled = true); // Disable options on success
-                 setTimeout(() => hidePopup('boost-popup'), 2500);
-
-            } catch (error) {
-                 setStatus(boostStatus, 'Error applying boost. Points may be deducted. Contact support.', 'error');
-                 handleFirebaseError(`purchasing boost for bot ${botId}`)(error);
-                 logTransaction(userId, 0, `CRITICAL_ERROR: Boost purchase failed AFTER deduction for bot ${botId}. Cost: ${cost}`);
-            }
-        }
-
-        // --- Comments ---
-        function loadComments(botId) { /* ... unchanged ... */
-             const botCommentsRef = commentsRef.child(botId);
-             commentsList.innerHTML = `<p class="text-muted" style="text-align: center;">Loading comments...</p>`;
-             if (botCommentsListener && currentOpenBotId && currentOpenBotId !== botId) {
-                 commentsRef.child(currentOpenBotId).off('value', botCommentsListener);
-             }
-             botCommentsListener = botCommentsRef.orderByChild('timestamp').limitToLast(50)
-                 .on('value', snapshot => {
-                     commentsList.innerHTML = '';
-                     if (snapshot.exists()) {
-                         snapshot.forEach(commentSnapshot => renderComment(commentSnapshot.val()));
-                     } else {
-                         commentsList.innerHTML = '<p class="text-muted" style="text-align: center;">No comments yet.</p>';
-                     }
-                 }, (error) => {
-                     handleFirebaseError(`loading comments for bot ${botId}`)(error);
-                     commentsList.innerHTML = '<p class="text-error" style="text-align: center;">Error loading comments.</p>';
-                 });
-             submitCommentButton.dataset.botId = botId;
-        }
-        function renderComment(commentData) { /* ... unchanged ... */
-             if (!commentData) return;
-             const commentDiv = document.createElement('div'); commentDiv.classList.add('comment');
-             const meta = document.createElement('div'); meta.classList.add('comment-meta');
-             const usernameStrong = document.createElement('strong'); usernameStrong.textContent = commentData.username || commentData.firstName || 'User'; meta.appendChild(usernameStrong);
-             const timestampSpan = document.createElement('span'); timestampSpan.classList.add('timestamp'); timestampSpan.textContent = new Date(commentData.timestamp || Date.now()).toLocaleString(); meta.appendChild(timestampSpan);
-             const text = document.createElement('p'); text.classList.add('comment-text'); text.textContent = commentData.text;
-             commentDiv.appendChild(meta); commentDiv.appendChild(text);
-             commentsList.insertBefore(commentDiv, commentsList.firstChild); // Prepend
-        }
-        async function handleSubmitComment() { /* ... unchanged ... */
-             const botId = submitCommentButton.dataset.botId; const commentText = newCommentText.value.trim();
-             if (!botId || !commentText || !userId) return; // Add more specific alerts if needed
-             setButtonDisabled(submitCommentButton, true, 'Posting...');
-             const commentData = { userId, username: userName || null, firstName: userFirstName, text: commentText, timestamp: firebase.database.ServerValue.TIMESTAMP, botId };
-             try {
-                 await commentsRef.child(botId).push().set(commentData);
-                 newCommentText.value = '';
-             } catch (error) { handleFirebaseError("posting comment")(error); }
-             finally { setButtonDisabled(submitCommentButton, false, 'Post Comment'); }
-        }
-
-
-        // --- Rendering Functions ---
-        function updateProfileUI(fname, lname, uname, id, points) {
-            profileFname.textContent = fname;
-            profileLname.textContent = lname || '-';
-            profileFullName.textContent = `${fname} ${lname}`.trim();
-            profileUsername.textContent = uname ? `@${uname}` : '(No username set)';
-            profileChatId.textContent = id;
-            profilePoints.textContent = points;
-            // Set Avatar Initial
-            profileAvatar.textContent = fname ? fname.charAt(0).toUpperCase() : '?';
-        }
-        function filterAndRenderBots() { /* ... unchanged, uses isBoosted correctly ... */
-             let filtered = [...currentBotList];
-             const searchTerm = searchInput.value.trim().toLowerCase();
-             if (searchTerm) {
-                 filtered = filtered.filter(bot => (bot.name && bot.name.toLowerCase().includes(searchTerm)) || (bot.description && bot.description.toLowerCase().includes(searchTerm)));
-             }
-             const now = Date.now();
-             if (currentTab === 'trending-bots') {
-                 filtered = filtered.filter(bot => isBoosted(bot, now)).sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
-             } else { // all-bots
-                 filtered.sort((a, b) => {
-                     const aB = isBoosted(a, now), bB = isBoosted(b, now);
-                     if (aB && !bB) return -1; if (!aB && bB) return 1;
-                     return (b.likeCount || 0) - (a.likeCount || 0);
-                 });
-             }
-            renderBotList(filtered, botListContainer);
-            displayedBots = filtered;
-        }
-        function renderBotList(botsToRender, container) { /* ... unchanged, uses correct icon path ... */
-             container.innerHTML = ''; // Clear previous list
-            if (botsToRender.length === 0) {
-                let message = "No bots found matching criteria.";
-                if (!searchInput.value.trim() && currentTab !== 'trending-bots') message = "No active bots found. Add one!";
-                else if (currentTab === 'trending-bots') message = "No trending bots right now.";
-                container.innerHTML = `<p class="text-muted" style="text-align: center; padding: 30px 15px;">${message}</p>`; return;
-            }
-            const now = Date.now();
-            botsToRender.forEach(bot => {
-                const card = document.createElement('div'); card.classList.add('bot-card'); card.dataset.botId = bot.id;
-                const icon = document.createElement('img'); icon.classList.add('bot-icon'); icon.src = bot.image || 'icons/default_bot_dark.png'; icon.alt = bot.name; icon.onerror = () => { icon.src = 'icons/default_bot_dark.png'; };
-                const info = document.createElement('div'); info.classList.add('bot-info');
-                const name = document.createElement('h3'); name.textContent = bot.name;
-                if (isBoosted(bot, now)) { const boostedIndicator = document.createElement('span'); boostedIndicator.classList.add('boosted-indicator'); boostedIndicator.textContent = '🚀'; boostedIndicator.title = 'Boosted'; name.appendChild(boostedIndicator); }
-                const desc = document.createElement('p'); desc.textContent = bot.description; info.appendChild(name); info.appendChild(desc);
-                const actions = document.createElement('div'); actions.classList.add('bot-actions');
-                const likeButton = document.createElement('button'); likeButton.classList.add('like-button'); likeButton.innerHTML = '🤍'; likeButton.title = "Like"; if (userLikes && userLikes[bot.id]) { likeButton.classList.add('liked'); likeButton.innerHTML = '❤️'; likeButton.title = "Unlike"; }
-                const likeCount = document.createElement('span'); likeCount.classList.add('like-count'); likeCount.textContent = bot.likeCount || 0;
-                actions.appendChild(likeButton); actions.appendChild(likeCount);
-                card.appendChild(icon); card.appendChild(info); card.appendChild(actions); container.appendChild(card);
-            });
-        }
-        function renderMyAddedBots(myBots) { /* ... unchanged ... */
-             myAddedBotsListContainer.innerHTML = '';
-             if (myBots.length === 0) { myAddedBotsListContainer.innerHTML = '<p class="text-muted" style="text-align: center;">You haven\'t added any bots yet.</p>'; return; }
-             myBots.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-             const now = Date.now();
-             myBots.forEach(bot => {
-                 const item = document.createElement('div'); item.classList.add('my-bot-item');
-                 const nameSpan = document.createElement('span'); nameSpan.textContent = bot.name;
-                 if (!bot.active) { const inactiveTag = document.createElement('span'); inactiveTag.classList.add('inactive-tag'); inactiveTag.textContent = ' (Inactive)'; nameSpan.appendChild(inactiveTag); item.style.opacity = '0.6'; }
-                 const actionsDiv = document.createElement('div'); actionsDiv.classList.add('my-bot-actions');
-                 const editButton = document.createElement('button'); editButton.textContent = 'Edit'; editButton.classList.add('edit-my-bot'); editButton.dataset.botId = bot.id;
-                 const boostButton = document.createElement('button'); boostButton.textContent = 'Boost'; boostButton.classList.add('boost-my-bot'); boostButton.dataset.botId = bot.id;
-                 if (!bot.active) { boostButton.disabled = true; boostButton.title = "Activate to boost"; } else if (isBoosted(bot, now)) { boostButton.textContent = 'Boosted'; boostButton.disabled = true; boostButton.title = `Active until ${new Date(bot.boostedUntil).toLocaleDateString()}`; }
-                 actionsDiv.appendChild(editButton); actionsDiv.appendChild(boostButton);
-                 item.appendChild(nameSpan); item.appendChild(actionsDiv); myAddedBotsListContainer.appendChild(item);
-             });
-        }
-        function renderTransactions(transactions) { /* ... Improved Styling Applied in CSS ... */
-            transactionListContainer.innerHTML = '';
-            if (transactions.length === 0) { transactionListContainer.innerHTML = '<p class="text-muted" style="text-align: center;">No transaction history.</p>'; return; }
-            transactions.forEach(tx => {
-                const item = document.createElement('div'); item.classList.add('transaction-item');
-                const details = document.createElement('div'); details.classList.add('transaction-details');
-                const reason = document.createElement('span'); reason.classList.add('transaction-reason'); reason.textContent = tx.reason || 'Points change'; details.appendChild(reason);
-                const date = document.createElement('span'); date.classList.add('transaction-date'); date.textContent = new Date(tx.timestamp).toLocaleString(); details.appendChild(date);
-                const amount = document.createElement('span'); amount.classList.add('transaction-amount'); amount.classList.add(tx.amount > 0 ? 'positive' : 'negative'); amount.textContent = `${tx.amount > 0 ? '+' : ''}${tx.amount}`;
-                item.appendChild(details); item.appendChild(amount); transactionListContainer.appendChild(item);
-            });
-        }
-        function viewBotDetails(botId) { /* ... unchanged ... */
-            console.log("Viewing details for bot:", botId);
-            let botData = currentBotList.find(bot => bot.id === botId);
-            if (botData) {
-                currentOpenBotId = botId; currentOpenBotData = botData;
-                renderBotDetails(botData); loadComments(botId); showPage('bot-detail-page');
-            } else {
-                console.log("Bot not in active list, fetching...");
-                db.ref(`bots/${botId}`).once('value')
-                    .then(snapshot => {
-                        if (snapshot.exists()) {
-                            botData = snapshot.val(); botData.id = botId;
-                            if (!botData.active && botData.adderUserId !== userId) { showAlert("Not Available", "This bot is currently inactive.", "info"); return; }
-                            currentOpenBotId = botId; currentOpenBotData = botData;
-                            renderBotDetails(botData); loadComments(botId); showPage('bot-detail-page');
-                        } else { showAlert("Not Found", "Selected bot not found.", "error"); }
-                    })
-                    .catch(handleFirebaseError("fetching bot details"));
-            }
-        }
-        function renderBotDetails(botData) { /* ... uses escapeHtml, disables owner like button ... */
-             if (!botData) { botDetailContent.innerHTML = `<p class="text-error">Error: Bot data missing.</p>`; commentsSection.style.display = 'none'; return; }
-             botDetailName.textContent = escapeHtml(botData.name);
-             const now = Date.now(); const isLiked = userLikes && userLikes[botData.id]; const isOwner = botData.adderUserId === userId; const boosted = isBoosted(botData, now);
-             let airdropInfo = 'N/A'; if (botData.airdropName) { airdropInfo = escapeHtml(botData.airdropName); if (botData.airdropPoints) airdropInfo += ` (${botData.airdropPoints} Points)`; }
-             botDetailContent.innerHTML = `
-                <img src="${escapeHtml(botData.image || 'icons/default_bot_dark.png')}" alt="${escapeHtml(botData.name)}" class="detail-bot-icon" onerror="this.src='icons/default_bot_dark.png';">
-                <h2>${escapeHtml(botData.name)}</h2>
-                ${!botData.active ? '<p class="text-warning" style="text-align:center; font-weight: bold;">Note: Bot is inactive.</p>' : ''}
-                <p><strong>Description:</strong> ${escapeHtml(botData.description)}</p>
-                <p><strong>Bot Link:</strong> <a href="${escapeHtml(botData.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(botData.link)}</a></p>
-                ${botData.telegramCommunity ? `<p><strong>Community:</strong> <a href="${escapeHtml(botData.telegramCommunity)}" target="_blank" rel="noopener noreferrer">${escapeHtml(botData.telegramCommunity)}</a></p>` : ''}
-                <p><strong>Airdrop Info:</strong> ${airdropInfo}</p>
-                <p><strong>Added By:</strong> ${escapeHtml(botData.adderFirstName || botData.adderUsername || 'Unknown')}</p>
-                <p><strong>Likes:</strong> <span id="detail-like-count">${botData.likeCount || 0}</span></p>
-                ${boosted ? `<p><strong>Status:</strong> <span class="text-warning">🚀 Boosted until ${new Date(botData.boostedUntil).toLocaleDateString()}</span></p>` : ''}
-                <div class="detail-action-buttons">
-                    <button class="detail-like-button ${isLiked ? 'liked' : ''}" data-bot-id="${botData.id}" ${isOwner ? 'disabled title="Cannot like own bot"' : ''}>${isLiked ? '❤️' : '🤍'}</button>
-                    ${isOwner && botData.active ? `<button class="detail-boost-button" data-bot-id="${botData.id}" ${boosted ? 'disabled title="Already boosted"' : ''}>⚡ ${boosted ? 'Boosted' : 'Boost'}</button>` : ''}
-                    ${isOwner && !botData.active ? `<button class="detail-boost-button" disabled title="Activate to boost">⚡ Boost</button>` : ''}
-                </div>`;
-            commentsSection.style.display = 'block'; newCommentText.value = '';
-        }
-
-        // --- Add/Edit Bot Popup Handling ---
-        function openAddBotPopup() { /* ... unchanged ... */ resetAddBotForm(); popupTitle.textContent = "Add New Bot"; submitBotButton.textContent = "Add Bot"; deleteBotButton.style.display = 'none'; showPopup('add-bot-popup'); }
-        function openEditBotPopup(botId) { /* ... unchanged ... */
-             resetAddBotForm(); popupTitle.textContent = "Edit Bot"; submitBotButton.textContent = "Update Bot"; deleteBotButton.style.display = 'block'; editBotIdInput.value = botId;
-             db.ref(`bots/${botId}`).once('value')
-                 .then(snapshot => {
-                     if (snapshot.exists()) {
-                         const d = snapshot.val(); if (d.adderUserId !== userId) { showAlert("Permission Denied", "Cannot edit this bot.", "error"); resetAddBotForm(); return; }
-                         document.getElementById('bot-name').value = d.name || ''; document.getElementById('bot-description').value = d.description || ''; document.getElementById('bot-link').value = d.link || ''; document.getElementById('bot-image').value = d.image || ''; document.getElementById('airdrop-name').value = d.airdropName || ''; document.getElementById('airdrop-points').value = d.airdropPoints || ''; document.getElementById('telegram-community').value = d.telegramCommunity || '';
-                         showPopup('add-bot-popup');
-                     } else { showAlert("Error", "Could not find bot data.", "error"); }
-                 }).catch(handleFirebaseError("fetching bot data for edit"));
-        }
-        function resetAddBotForm() { /* ... uses setFormDisabled ... */ addBotForm.reset(); editBotIdInput.value = ''; setFormDisabled(addBotForm, false, 'Add Bot'); deleteBotButton.style.display = 'none'; }
-
-        // --- Utility Functions ---
-        function debounce(func, wait) { /* ... unchanged ... */ let timeout; return function(...args) { const later = () => { clearTimeout(timeout); func.apply(this, args); }; clearTimeout(timeout); timeout = setTimeout(later, wait); }; }
-        function isValidHttpUrl(string) { /* ... unchanged ... */ try { const url = new URL(string); return url.protocol === "http:" || url.protocol === "https:"; } catch (_) { return false; } }
-        function isValidTelegramLink(string) { /* ... unchanged ... */ const pattern = /^https?:\/\/t\.me\/[a-zA-Z0-9_]{3,}(\/\S*)?$/; return !!pattern.test(string); } // Slightly broader t.me link check
-        function isBoosted(bot, currentTime = Date.now()) { /* ... unchanged ... */ return bot && bot.boostedUntil && bot.boostedUntil > currentTime; }
-        function setFormDisabled(formElement, isDisabled, buttonText = null) { /* ... unchanged ... */ formElement.querySelectorAll('button, input, textarea').forEach(el => el.disabled = isDisabled); const submitBtn = formElement.querySelector('button[type="submit"]'); if(submitBtn && buttonText !== null) submitBtn.textContent = buttonText; }
-        function setButtonDisabled(buttonElement, isDisabled, buttonText = null) { buttonElement.disabled = isDisabled; if(buttonText !== null) buttonElement.textContent = buttonText; }
-        function setStatus(element, message, type = 'info') { element.textContent = message; element.className = `popup-status ${type}`; } // Helper for status elements
-        function handleFirebaseError(context) { /* ... unchanged (basic logging and alert) ... */ return (error) => { console.error(`Firebase Error (${context}):`, error); if (error && error.message && error.message.toLowerCase().includes('transaction aborted')) { console.warn(`Transaction aborted during ${context}.`); return; } showAlert("Database Error", `Error during ${context}. (${error.code || error.message})`, "error"); }; }
-        function escapeHtml(unsafe) { /* ... unchanged ... */ if (typeof unsafe !== 'string') return unsafe; return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
-
-        // --- END ---
-    </script>
-
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <!-- Ad Network SDK -->
+    <script src='//whephiwums.com/sdk.js' data-zone='9263144' data-sdk='show_9263144'></script>
+
+    <!-- Your App Logic -->
+    <script src="script.js"></script>
 </body>
 </html>
-
-
