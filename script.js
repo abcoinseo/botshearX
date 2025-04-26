@@ -1,5 +1,5 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyBW1WPXUN8DYhT6npZQYoQ3l4J-jFSbzfg", // WARNING: Exposing keys like this is insecure for production
+    apiKey: "AIzaSyBW1WPXUN8DYhT6npZQYoQ3l4J-jFSbzfg", // Replace if needed, but use Rules!
     authDomain: "ab-studio-marketcap.firebaseapp.com",
     databaseURL: "https://ab-studio-marketcap-default-rtdb.firebaseio.com",
     projectId: "ab-studio-marketcap",
@@ -8,1367 +8,985 @@ const firebaseConfig = {
     appId: "1:115268088088:web:65643a047f92bfaa66ee6d"
 };
 
-// --- Telegram Elements & Data ---
-const tg = window.Telegram.WebApp;
-let currentUser = null;
-let userId = null;
-let userFirstName = 'Guest';
-let userLastName = '';
-let userName = '';
-let userPoints = 0;
-let userLikes = {}; // Store bots liked by the user { botId: true }
-
-// --- Firebase Refs ---
+// --- Global Variables ---
+let tg = window.Telegram.WebApp;
 let db;
+let currentUser = null;
+let userProfile = { points: 0, lastDailyShare: 0, likedBots: {} };
+let allBots = {}; // Store all fetched bots { botId: botData }
+let currentBotList = []; // Bots currently displayed based on filter/search
+let currentOpenBotId = null; // For detail view
+let currentEditBotId = null; // For editing bot
+let adCooldown = false; // Simple flag for ad cooldown
+const DAILY_SHARE_POINTS = 50; // Example points
+const LIKE_REWARD_POINTS = 10; // Points for receiving a like
+const AD_REWARD_POINTS = 10;
+const AD_COOLDOWN_MS = 30 * 1000; // 30 seconds
 
 // --- DOM Elements ---
-const appElement = document.getElementById('app');
-const pages = document.querySelectorAll('.page');
-const navbar = document.getElementById('navbar');
-const navButtons = document.querySelectorAll('.nav-button');
-const loadingPage = document.getElementById('loading-page');
-const errorPage = document.getElementById('error-page');
+const loadingScreen = document.getElementById('loading-screen');
 const errorMessage = document.getElementById('error-message');
-const homePage = document.getElementById('home-page');
-const profilePage = document.getElementById('profile-page');
-const addBotPage = document.getElementById('add-bot-page'); // Refers to the static page now
-const botDetailPage = document.getElementById('bot-detail-page');
-
+const pages = document.querySelectorAll('.page');
+const navButtons = document.querySelectorAll('.nav-button:not(.add-button)');
+const addBotNavButton = document.getElementById('add-bot-nav-button');
 const botListContainer = document.getElementById('bot-list-container');
-const searchInput = document.getElementById('search-bot');
+const searchInput = document.getElementById('search-input');
 const tabButtons = document.querySelectorAll('.tab-button');
-
 const profileName = document.getElementById('profile-name');
 const profileUsername = document.getElementById('profile-username');
 const profileChatId = document.getElementById('profile-chat-id');
 const profilePoints = document.getElementById('profile-points');
-const earnPointsButton = document.getElementById('earn-points-button');
-const shareButton = document.getElementById('share-button'); // Share button
+const myBotsList = document.getElementById('my-bots-list');
+const dailyShareButton = document.getElementById('daily-share-button');
+const earnAdsButton = document.getElementById('earn-ads-button');
 
-const earnPopup = document.getElementById('earn-popup');
-const watchAdButton = document.getElementById('watch-ad-button');
-const adStatus = document.getElementById('ad-status');
-
+// Popups & Forms
 const addBotPopup = document.getElementById('add-bot-popup');
-const addBotForm = document.getElementById('add-bot-form');
-const addBotNavButton = document.getElementById('add-bot-nav-button'); // Specific nav button
-const popupTitle = document.getElementById('popup-title');
-const submitBotButton = document.getElementById('submit-bot-button');
-const deleteBotButton = document.getElementById('delete-bot-button'); // Delete button
-const editBotIdInput = document.getElementById('edit-bot-id');
-
+const dailySharePopup = document.getElementById('daily-share-popup');
 const boostPopup = document.getElementById('boost-popup');
-const boostBotIdInput = document.getElementById('boost-bot-id');
-const boostOptionsContainer = boostPopup.querySelector('.boost-options');
+const infoPopup = document.getElementById('info-popup');
+const addBotForm = document.getElementById('add-bot-form');
+const closePopupButtons = document.querySelectorAll('.close-popup, .cancel-button[data-popup]');
+const claimDailyShareButton = document.getElementById('claim-daily-share-button');
+const dailyShareStatus = document.getElementById('daily-share-status');
+const dailyShareAmount = document.getElementById('daily-share-amount');
+const boostOptions = document.querySelectorAll('.boost-option');
 const boostStatus = document.getElementById('boost-status');
+const boostBotIdInput = document.getElementById('boost-bot-id');
+const infoPopupTitle = document.getElementById('info-popup-title');
+const infoPopupMessage = document.getElementById('info-popup-message');
 
-const customAlertPopup = document.getElementById('custom-alert-popup');
-const customAlertTitle = document.getElementById('custom-alert-title');
-const customAlertMessage = document.getElementById('custom-alert-message');
-
-const myAddedBotsListContainer = document.getElementById('my-added-bots-list');
-
-const botDetailContent = document.getElementById('bot-detail-content');
-const botDetailName = document.getElementById('detail-bot-name');
+// Bot Detail Page Elements
+const botDetailPage = document.getElementById('bot-detail-page');
 const backToHomeButton = document.getElementById('back-to-home-button');
-const commentsSection = document.getElementById('bot-comments-section');
-const commentsList = document.getElementById('comments-list');
-const newCommentText = document.getElementById('new-comment-text');
-const submitCommentButton = document.getElementById('submit-comment-button');
+const detailBotName = document.getElementById('detail-bot-name');
+const botDetailContent = document.getElementById('bot-detail-content');
 
-// --- App State ---
-let currentBotList = []; // Full list of active bots from Firebase
-let displayedBots = []; // Filtered/Sorted list currently shown
-let currentOpenBotId = null;
-let currentOpenBotData = null;
-let currentTab = 'all-bots'; // 'all-bots', 'trending-bots', 'my-bots'
-const AD_REWARD = 10;
-const AD_COOLDOWN_MINUTES = 30; // Cooldown for watching ads
-const LIKE_REWARD_FOR_ADDER = 10; // Points adder gets per like
 
 // --- Initialization ---
-window.onload = () => {
-    initializeApp();
-};
-
 function initializeApp() {
-    tg.ready(); // Inform Telegram the app is ready
-    tg.expand(); // Expand the app to full height
+    tg.ready();
+    tg.expand(); // Expand the webapp view
 
-    // Basic platform check
+    // --- Check if running inside Telegram ---
     if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-        console.error("Not running inside Telegram or user data unavailable.");
-        showPage('error-page');
-        errorMessage.textContent = "Error: Cannot retrieve Telegram user data. Please open this app within Telegram.";
-        loadingPage.classList.remove('active');
+    // if (!tg.initData || tg.initData === "") { // Use this for production check
+        showError("This app can only be launched from Telegram.");
+        tg.close(); // Close if not in Telegram (optional)
         return;
     }
 
-    // Get User Data
     currentUser = tg.initDataUnsafe.user;
-    userId = currentUser.id.toString(); // Ensure string ID
-    userFirstName = currentUser.first_name || 'User';
-    userLastName = currentUser.last_name || '';
-    userName = currentUser.username || 'N/A';
+    // For production, you would VERIFY tg.initData on your backend first!
 
-    console.log("Telegram User Data:", currentUser);
-
-    // Initialize Firebase
+    // --- Initialize Firebase ---
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.database();
         console.log("Firebase Initialized");
+        fetchInitialData();
     } catch (error) {
-        console.error("Firebase Initialization Error:", error);
-        showPage('error-page');
-        errorMessage.textContent = "Error: Could not connect to the database.";
-        loadingPage.classList.remove('active');
-        return;
+        console.error("Firebase Init Error:", error);
+        showError("Failed to connect to the database.");
     }
 
-    // Setup Event Listeners
+    // --- Setup Event Listeners ---
     setupEventListeners();
 
-    // Load initial data
-    loadUserProfile(); // Load or create user profile first
-    loadBots();       // Then load bots
-
-    // Show Home Page after setup
-    showPage('home-page');
-    loadingPage.classList.remove('active'); // Hide loading indicator
+    // --- Show Home Page ---
+    showPage('home-page'); // Start with home
+    loadingScreen.classList.remove('active-page');
+    dailyShareAmount.textContent = DAILY_SHARE_POINTS; // Set points display in popup
 }
 
-// --- Page Navigation ---
+function showError(message) {
+    loadingScreen.classList.add('active-page'); // Show loading screen container
+    loadingScreen.querySelector('p').textContent = "Error"; // Change text
+    loadingScreen.querySelector('.spinner').style.display = 'none'; // Hide spinner
+    errorMessage.textContent = message;
+    errorMessage.style.display = 'block';
+    console.error(message);
+    // Hide other pages if necessary
+    pages.forEach(p => { if (p.id !== 'loading-screen') p.classList.remove('active-page') });
+}
+
+// --- Data Fetching ---
+async function fetchInitialData() {
+    if (!currentUser || !db) return;
+
+    await fetchUserProfile(); // Get user points, likes etc.
+    listenForBots(); // Start listening for bot updates
+    // Initial display will happen inside listenForBots callback
+}
+
+async function fetchUserProfile() {
+    const userRef = db.ref(`users/${currentUser.id}`);
+    try {
+        const snapshot = await userRef.once('value');
+        if (snapshot.exists()) {
+            userProfile = { ...userProfile, ...snapshot.val() };
+             // Ensure likedBots is an object
+            if (!userProfile.likedBots || typeof userProfile.likedBots !== 'object') {
+                userProfile.likedBots = {};
+            }
+            console.log("User profile loaded:", userProfile);
+        } else {
+            // Create initial profile if it doesn't exist
+            console.log("Creating new user profile");
+            await userRef.set({
+                id: currentUser.id,
+                firstName: currentUser.first_name || '',
+                lastName: currentUser.last_name || '',
+                username: currentUser.username || 'N/A',
+                points: 0,
+                lastDailyShare: 0,
+                likedBots: {}, // Initialize likedBots
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+            userProfile.points = 0; // Update local state
+            userProfile.lastDailyShare = 0;
+            userProfile.likedBots = {};
+        }
+        updateProfileUI(); // Update UI after fetching/creating
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        showInfoPopup("Error", "Could not load your profile data.");
+    }
+}
+
+function listenForBots() {
+    const botsRef = db.ref('bots');
+    // Use '.on' for real-time updates
+    botsRef.orderByChild('createdAt').on('value', (snapshot) => {
+        allBots = {}; // Reset local cache
+        if (snapshot.exists()) {
+            snapshot.forEach((childSnapshot) => {
+                const botData = childSnapshot.val();
+                // Only include active bots OR bots submitted by the current user (for editing)
+                if (botData && (botData.active === true || botData.submitterId === currentUser.id)) {
+                     // Ensure basic fields exist for sorting/display
+                    allBots[childSnapshot.key] = {
+                        id: childSnapshot.key, // Add the Firebase key as id
+                        ...botData,
+                        likesCount: botData.likesCount || 0,
+                        createdAt: botData.createdAt || 0,
+                        boostEndDate: botData.boostEndDate || 0,
+                         active: botData.active !== undefined ? botData.active : true // Default to active if missing
+                    };
+                }
+            });
+        } else {
+            console.log("No bots found in database.");
+        }
+        console.log("Bots updated:", Object.keys(allBots).length);
+        // Trigger display update after data is fetched/updated
+        displayBots();
+        updateMyBotsList(); // Update profile page too
+    }, (error) => {
+        console.error("Error listening for bots:", error);
+        botListContainer.innerHTML = '<p class="placeholder">Error loading bots.</p>';
+    });
+}
+
+
+// --- UI Updates ---
 function showPage(pageId) {
-    pages.forEach(page => page.classList.remove('active'));
-    const activePage = document.getElementById(pageId);
-    if (activePage) {
-        activePage.classList.add('active');
-        // Update navbar active state
-        navButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.page === pageId);
+    pages.forEach(page => {
+        page.classList.toggle('active-page', page.id === pageId);
+    });
+    // Update active nav button
+    navButtons.forEach(button => {
+        button.classList.toggle('active', button.dataset.page === pageId);
+    });
+    addBotNavButton.classList.remove('active'); // Deactivate add button visually
+
+    // Refresh data if needed when switching to certain pages
+    if (pageId === 'profile-page') {
+        updateProfileUI();
+        updateMyBotsList(); // Make sure the list is current
+    }
+    if (pageId === 'home-page') {
+         // Reset scroll and filters if needed
+        document.getElementById('home-page').scrollTop = 0;
+        // displayBots(); // Re-filter/sort if needed
+    }
+     // Clear search when leaving home page (optional)
+    if (pageId !== 'home-page') {
+        searchInput.value = '';
+    }
+    // Hide detail page if navigating away
+    if(pageId !== 'bot-detail-page') {
+        currentOpenBotId = null;
+        botDetailPage.classList.remove('active-page');
+    }
+}
+
+function updateProfileUI() {
+    if (!currentUser) return;
+    profileName.textContent = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`;
+    profileUsername.textContent = currentUser.username ? `@${currentUser.username}` : 'Not set';
+    profileChatId.textContent = currentUser.id;
+    profilePoints.textContent = userProfile.points || 0;
+}
+
+function displayBots() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const activeTab = document.querySelector('.tab-button.active')?.dataset.tab || 'all';
+
+    // 1. Filter based on search and active status
+    let filteredBots = Object.values(allBots).filter(bot => {
+        const isMatch = (
+            (bot.name?.toLowerCase() || '').includes(searchTerm) ||
+            (bot.description?.toLowerCase() || '').includes(searchTerm)
+        );
+         // Always show user's own inactive bots on their profile, but filter here for home page
+        return isMatch && bot.active === true;
+    });
+
+
+    // 2. Sort based on the active tab
+    const now = Date.now();
+    currentBotList = filteredBots.sort((a, b) => {
+        const aIsBoosted = a.boostEndDate && a.boostEndDate > now;
+        const bIsBoosted = b.boostEndDate && b.boostEndDate > now;
+
+        // Prioritize boosted bots
+        if (aIsBoosted && !bIsBoosted) return -1;
+        if (!aIsBoosted && bIsBoosted) return 1;
+        // If both are boosted (or not boosted), sort by criteria
+        if (aIsBoosted && bIsBoosted) {
+            // Boosted sorted by remaining time (longer first) or creation date? Let's use likes for now.
+             return (b.likesCount || 0) - (a.likesCount || 0);
+        }
+
+        // Non-boosted sorting
+        if (activeTab === 'trending') {
+             // Simple trending: combination of recent + likes (adjust weights as needed)
+             // Example: score = likes + (time_factor * recency_score)
+            const recencyA = Math.max(0, 1 - (now - (a.createdAt || 0)) / (7 * 24 * 60 * 60 * 1000)); // Normalize over 1 week
+            const recencyB = Math.max(0, 1 - (now - (b.createdAt || 0)) / (7 * 24 * 60 * 60 * 1000));
+            const scoreA = (a.likesCount || 0) + 5 * recencyA; // Weight recency
+            const scoreB = (b.likesCount || 0) + 5 * recencyB;
+            return scoreB - scoreA;
+        } else if (activeTab === 'top-liked') {
+            return (b.likesCount || 0) - (a.likesCount || 0); // Sort by likes descending
+        } else { // 'all' or default
+            return (b.createdAt || 0) - (a.createdAt || 0); // Sort by newest first
+        }
+    });
+
+    // 3. Render the sorted list
+    botListContainer.innerHTML = ''; // Clear previous list
+    if (currentBotList.length === 0) {
+        botListContainer.innerHTML = `<p class="placeholder">No bots found${searchTerm ? ' matching "' + searchTerm + '"' : ''}.</p>`;
+        return;
+    }
+
+    currentBotList.forEach(bot => {
+        const card = createBotCard(bot, 'home');
+        botListContainer.appendChild(card);
+    });
+}
+
+function updateMyBotsList() {
+     if (!currentUser) return;
+    myBotsList.innerHTML = ''; // Clear previous list
+    const userBots = Object.values(allBots)
+        .filter(bot => bot.submitterId === currentUser.id)
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Sort by newest first
+
+    if (userBots.length === 0) {
+        myBotsList.innerHTML = '<p class="placeholder">You haven\'t added any bots yet.</p>';
+        return;
+    }
+
+    userBots.forEach(bot => {
+        const card = createBotCard(bot, 'profile'); // Pass 'profile' context
+        myBotsList.appendChild(card);
+    });
+}
+
+
+function createBotCard(bot, context = 'home') {
+    const card = document.createElement('div');
+    card.className = 'bot-card';
+    card.dataset.botId = bot.id;
+
+    const isLiked = userProfile.likedBots && userProfile.likedBots[bot.id];
+    const likeIcon = isLiked ? 'favorite' : 'favorite_border';
+    const likeButtonClass = isLiked ? 'like-button liked' : 'like-button';
+     const now = Date.now();
+     const isBoosted = bot.boostEndDate && bot.boostEndDate > now;
+
+    card.innerHTML = `
+        <img src="${bot.imageLink || 'https://via.placeholder.com/50/444/888?text=Bot'}" alt="${bot.name}" class="bot-image" onerror="this.src='https://via.placeholder.com/50/444/888?text=Bot';">
+        <div class="bot-info">
+            <h3>
+                ${bot.name || 'Unnamed Bot'}
+                ${isBoosted ? '<span class="material-symbols-outlined" style="font-size: 1em; color: #ffc107; vertical-align: middle;" title="Boosted">rocket_launch</span>' : ''}
+                ${bot.active === false ? '<span style="color: #ff9800; font-size: 0.8em;"> (Inactive)</span>': ''}
+            </h3>
+            <p>${bot.description || 'No description.'}</p>
+            <div class="bot-meta">
+                <span class="likes">
+                    <button class="${likeButtonClass}" data-bot-id="${bot.id}" title="Like Bot">
+                        <span class="material-symbols-outlined">${likeIcon}</span>
+                    </button>
+                    <span class="like-count">${bot.likesCount || 0}</span>
+                </span>
+                <span class="submitter">
+                    <span class="material-symbols-outlined" style="font-size: 1em;">person</span>
+                    <span>${bot.submitterUsername || 'Unknown'}</span>
+                </span>
+            </div>
+        </div>
+        ${context === 'profile' ? `
+            <div class="bot-actions">
+                <button class="edit-bot-button" data-bot-id="${bot.id}" title="Edit Bot"><span class="material-symbols-outlined" style="font-size: 1.2em;">edit</span></button>
+                <button class="boost-bot-button" data-bot-id="${bot.id}" title="Boost Bot"><span class="material-symbols-outlined" style="font-size: 1.2em;">rocket_launch</span></button>
+            </div>
+        ` : ''}
+    `;
+
+    // Add event listener for the like button within this card
+    const likeButton = card.querySelector('.like-button');
+    if (likeButton) {
+        likeButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent card click when liking
+            handleLikeBot(bot.id);
         });
-         // Reset scroll position when changing pages
-        activePage.scrollTop = 0;
-    } else {
-        console.warn(`Page with id "${pageId}" not found.`);
-        // Fallback to home page if requested page doesn't exist
-        document.getElementById('home-page').classList.add('active');
-        navButtons.forEach(btn => {
-             btn.classList.toggle('active', btn.dataset.page === 'home-page');
+    }
+
+     // Add event listener for the entire card (to show details)
+     if (context === 'home') {
+         card.addEventListener('click', () => {
+             showBotDetails(bot.id);
+         });
+     }
+
+     // Add listeners for profile actions
+     if (context === 'profile') {
+         const editButton = card.querySelector('.edit-bot-button');
+         const boostButton = card.querySelector('.boost-bot-button');
+         if (editButton) {
+             editButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleEditBot(bot.id);
+             });
+         }
+          if (boostButton) {
+             boostButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleBoostBot(bot.id);
+             });
+         }
+     }
+
+
+    return card;
+}
+
+function showBotDetails(botId) {
+    const bot = allBots[botId];
+    if (!bot) {
+        showInfoPopup("Error", "Bot details not found.");
+        return;
+    }
+    currentOpenBotId = botId;
+
+    detailBotName.textContent = bot.name || 'Bot Details';
+
+    const isLiked = userProfile.likedBots && userProfile.likedBots[bot.id];
+    const likeIcon = isLiked ? 'favorite' : 'favorite_border';
+    const likeButtonClass = isLiked ? 'detail-like-button liked' : 'detail-like-button';
+
+    botDetailContent.innerHTML = `
+        ${bot.imageLink ? `<img src="${bot.imageLink}" alt="${bot.name}" onerror="this.style.display='none';">` : ''}
+        <p id="detail-description">${bot.description || 'No description available.'}</p>
+        <div id="detail-meta">
+            <p><strong>Link:</strong> <a href="${bot.link}" target="_blank" rel="noopener noreferrer">${bot.link}</a></p>
+            ${bot.telegramCommunity ? `<p><strong>Community:</strong> <a href="${bot.telegramCommunity}" target="_blank" rel="noopener noreferrer">${bot.telegramCommunity}</a></p>` : ''}
+            ${bot.airdropName ? `<p><strong>Airdrop:</strong> ${bot.airdropName} ${bot.airdropPoints ? `(${bot.airdropPoints} points)` : ''}</p>` : ''}
+            <p><strong>Submitted by:</strong> ${bot.submitterUsername || 'Unknown'}</p>
+            <p><strong>Submitted on:</strong> ${new Date(bot.createdAt || 0).toLocaleDateString()}</p>
+        </div>
+        <div id="detail-like-section">
+             <button class="${likeButtonClass}" id="detail-like-button" data-bot-id="${bot.id}">
+                <span class="material-symbols-outlined">${likeIcon}</span> Like
+            </button>
+            <span id="detail-like-count">${bot.likesCount || 0} Likes</span>
+        </div>
+        <!-- Comment Section Placeholder -->
+        <div id="comment-section" style="margin-top: 20px;">
+            <h4>Comments</h4>
+            <p class="placeholder">Commenting feature coming soon!</p>
+            <!-- Add comment form and list here later -->
+        </div>
+    `;
+
+     // Add listener for the detail page like button
+    const detailLikeButton = botDetailContent.querySelector('#detail-like-button');
+    if (detailLikeButton) {
+        detailLikeButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleLikeBot(bot.id, true); // Pass flag to update detail view
         });
     }
+
+    showPage('bot-detail-page');
+    botDetailPage.scrollTop = 0; // Scroll to top
 }
 
-// --- Popup Handling ---
-function showPopup(popupId) {
-    const popup = document.getElementById(popupId);
-    if (popup) {
-        popup.classList.add('active');
+function updateLikeButtonUI(botId, isLiked, newCount) {
+    // Update card on home/profile page
+    const cardLikeButton = botListContainer.querySelector(`.like-button[data-bot-id="${botId}"]`);
+     const profileCardLikeButton = myBotsList.querySelector(`.like-button[data-bot-id="${botId}"]`);
+
+    if (cardLikeButton) {
+        cardLikeButton.classList.toggle('liked', isLiked);
+        cardLikeButton.querySelector('.material-symbols-outlined').textContent = isLiked ? 'favorite' : 'favorite_border';
+        const countSpan = cardLikeButton.closest('.likes').querySelector('.like-count');
+        if (countSpan) countSpan.textContent = newCount;
+    }
+     if (profileCardLikeButton) {
+        profileCardLikeButton.classList.toggle('liked', isLiked);
+        profileCardLikeButton.querySelector('.material-symbols-outlined').textContent = isLiked ? 'favorite' : 'favorite_border';
+        const countSpan = profileCardLikeButton.closest('.likes').querySelector('.like-count');
+        if (countSpan) countSpan.textContent = newCount;
+    }
+
+    // Update button on detail page if it's open
+    if (currentOpenBotId === botId) {
+        const detailLikeButton = botDetailContent.querySelector('#detail-like-button');
+        const detailLikeCount = botDetailContent.querySelector('#detail-like-count');
+        if (detailLikeButton) {
+            detailLikeButton.classList.toggle('liked', isLiked);
+            detailLikeButton.querySelector('.material-symbols-outlined').textContent = isLiked ? 'favorite' : 'favorite_border';
+        }
+        if (detailLikeCount) {
+            detailLikeCount.textContent = `${newCount} Likes`;
+        }
     }
 }
 
-function hidePopup(popupId) {
-    const popup = document.getElementById(popupId);
-    if (popup) {
-        popup.classList.remove('active');
-         // Reset specific popup states if needed
-         if (popupId === 'add-bot-popup') resetAddBotForm();
-         if (popupId === 'boost-popup') boostStatus.textContent = '';
-         if (popupId === 'earn-popup') adStatus.textContent = '';
-    }
-}
 
-// --- Custom Alert ---
-function showAlert(title = "Alert", message = "") {
-    customAlertTitle.textContent = title;
-    customAlertMessage.textContent = message;
-    showPopup('custom-alert-popup');
-}
-
-
-// --- Event Listeners Setup ---
+// --- Actions & Event Handlers ---
 function setupEventListeners() {
     // Navigation
-    navbar.addEventListener('click', (e) => {
-        const button = e.target.closest('.nav-button');
-        if (button && button.dataset.page) {
-            // Special handling for Add Bot button - open popup instead of page
-            if (button.id === 'add-bot-nav-button') {
-                openAddBotPopup(); // Open the popup for adding
-            } else {
-                 showPage(button.dataset.page);
-                 if (button.dataset.page === 'add-bot-page') {
-                    loadMyAddedBots(); // Load user's bots when going to their dedicated page/tab
-                 }
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const pageId = button.dataset.page;
+            if (pageId) {
+                showPage(pageId);
+                // Vibrate feedback (optional)
+                tg.HapticFeedback.impactOccurred('light');
             }
-        }
+        });
     });
 
-     // Back button on Detail Page
-    backToHomeButton.addEventListener('click', () => {
+    addBotNavButton.addEventListener('click', () => {
+        openAddBotPopup(); // Open as popup
+         tg.HapticFeedback.impactOccurred('light');
+    });
+
+     backToHomeButton.addEventListener('click', () => {
         showPage('home-page');
-        currentOpenBotId = null; // Clear currently viewed bot
-        currentOpenBotData = null;
     });
 
-    // Profile Buttons
-    earnPointsButton.addEventListener('click', () => showPopup('earn-popup'));
-    shareButton.addEventListener('click', handleShare); // Share button listener
 
-    // Earn Points Popup
-    watchAdButton.addEventListener('click', watchAdForPoints);
-
-    // Add Bot Popup / Form
-    addBotNavButton.addEventListener('click', openAddBotPopup); // Ensure nav button opens popup
-    addBotForm.addEventListener('submit', handleAddOrUpdateBot);
-    deleteBotButton.addEventListener('click', handleDeleteBot); // Delete button listener
-
-
-    // Close Popups
-    document.querySelectorAll('.close-popup, .close-popup-button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            hidePopup(btn.dataset.popup);
+    // Search & Tabs
+    searchInput.addEventListener('input', displayBots);
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            displayBots(); // Re-sort and display
         });
     });
-     document.querySelectorAll('.popup-overlay').forEach(overlay => {
-        overlay.addEventListener('click', (e) => {
-             if (e.target === overlay) { // Only close if clicking the background overlay itself
-                 hidePopup(overlay.id);
-             }
-         });
-     });
 
-    // Search Input
-    searchInput.addEventListener('input', debounce(handleSearch, 300));
-
-     // Tab Buttons
-     tabButtons.forEach(button => {
-         button.addEventListener('click', () => {
-             tabButtons.forEach(btn => btn.classList.remove('active'));
-             button.classList.add('active');
-             currentTab = button.dataset.tab;
-             filterAndRenderBots(); // Re-render based on the new tab
-             if (currentTab === 'my-bots') {
-                 loadMyAddedBots(); // Load specifically when 'My Bots' tab is clicked
-             }
-         });
-     });
-
-    // Boost Popup options
-    boostOptionsContainer.addEventListener('click', (e) => {
-        const button = e.target.closest('.boost-option');
-        if (button) {
-            const duration = parseInt(button.dataset.duration, 10);
-            const cost = parseInt(button.dataset.cost, 10);
-            const botId = boostBotIdInput.value;
-            if (!botId) {
-                boostStatus.textContent = "Error: Bot ID not found.";
-                return;
+    // Popups
+    closePopupButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const popupId = button.dataset.popup || button.closest('.popup')?.id;
+            if (popupId) {
+                closePopup(popupId);
             }
-            purchaseBoost(botId, duration, cost);
-        }
-    });
-
-    // Comment Submission
-    submitCommentButton.addEventListener('click', handleSubmitComment);
-
-     // Event delegation for dynamic elements (like buttons)
-     document.body.addEventListener('click', handleDynamicClicks);
-}
-
-// --- Dynamic Click Handler (for buttons added later like like, edit, boost) ---
-function handleDynamicClicks(event) {
-    const target = event.target;
-
-    // Like button on bot cards (Home Page)
-    if (target.matches('.like-button') || target.closest('.like-button')) {
-        const button = target.closest('.like-button');
-        const botCard = target.closest('.bot-card');
-        if (button && botCard && botCard.dataset.botId) {
-             const botId = botCard.dataset.botId;
-             toggleLikeBot(botId, button);
-         }
-        return; // Prevent other handlers if it was a like button
-    }
-
-     // Click on a bot card (Home Page) to view details
-     const botCard = target.closest('.bot-card');
-     if (botCard && botCard.dataset.botId && !target.closest('.like-button')) { // Make sure not clicking the like button itself
-         const botId = botCard.dataset.botId;
-         viewBotDetails(botId);
-         return;
-     }
-
-     // Like button on Detail Page
-     if (target.matches('.detail-like-button') || target.closest('.detail-like-button')) {
-         const button = target.closest('.detail-like-button');
-         if (button && currentOpenBotId) {
-             toggleLikeBot(currentOpenBotId, button); // Use the currently open bot ID
-         }
-         return;
-     }
-
-    // Boost button on Detail Page
-    if (target.matches('.detail-boost-button') || target.closest('.detail-boost-button')) {
-         if (currentOpenBotId) {
-             openBoostPopup(currentOpenBotId);
-         }
-         return;
-     }
-
-    // Edit button on "My Bots" list (Add Bot Page/Tab)
-    if (target.matches('.edit-my-bot') || target.closest('.edit-my-bot')) {
-        const button = target.closest('.edit-my-bot');
-        const botId = button.dataset.botId;
-        if (botId) {
-            openEditBotPopup(botId);
-        }
-        return;
-    }
-
-    // Boost button on "My Bots" list (Add Bot Page/Tab)
-    if (target.matches('.boost-my-bot') || target.closest('.boost-my-bot')) {
-        const button = target.closest('.boost-my-bot');
-        const botId = button.dataset.botId;
-        if (botId) {
-             openBoostPopup(botId); // Open boost popup directly
-         }
-        return;
-    }
-}
-
-// --- Firebase Functions ---
-
-// Load or Create User Profile
-function loadUserProfile() {
-    if (!userId) return;
-    const userRef = db.ref(`users/${userId}`);
-
-    // Use onValue for real-time updates on points and liked bots
-    userRef.onValue(snapshot => {
-        if (snapshot.exists()) {
-            const userData = snapshot.val();
-            userPoints = userData.points || 0;
-            userLikes = userData.likes || {}; // Load user's liked bots
-            // Update UI immediately
-            updateProfileUI(userFirstName, userName, userId, userPoints);
-            // Re-render bots if needed to update like button states based on new userLikes data
-            if (currentBotList.length > 0) {
-                 filterAndRenderBots();
-            }
-        } else {
-            // Create new user profile if it doesn't exist
-            console.log("Creating new user profile for:", userId);
-            userRef.set({
-                firstName: userFirstName,
-                lastName: userLastName,
-                username: userName,
-                chatId: userId,
-                points: 0,
-                createdAt: firebase.database.ServerValue.TIMESTAMP,
-                likes: {} // Initialize likes object
-            })
-            .then(() => {
-                console.log("User profile created successfully.");
-                userPoints = 0;
-                userLikes = {};
-                updateProfileUI(userFirstName, userName, userId, userPoints);
-            })
-            .catch(error => {
-                console.error("Error creating user profile:", error);
-                showAlert("Database Error", "Could not create your user profile.");
-            });
-        }
-    }, error => {
-        console.error("Error reading user profile:", error);
-        showAlert("Database Error", "Could not load your profile data.");
-        updateProfileUI(userFirstName, userName, userId, 'Error'); // Show error in UI
-    });
-}
-
-
-// Load Bots from Firebase
-function loadBots() {
-    const botsRef = db.ref('bots');
-
-    botsRef.orderByChild('active').equalTo(true).onValue(snapshot => {
-        currentBotList = []; // Reset the list
-        if (snapshot.exists()) {
-            snapshot.forEach(childSnapshot => {
-                const botData = childSnapshot.val();
-                 // Add bot ID to the data object
-                botData.id = childSnapshot.key;
-                // Initialize likes if missing
-                botData.likeCount = botData.likeCount || 0;
-                currentBotList.push(botData);
-            });
-            console.log("Loaded active bots:", currentBotList.length);
-        } else {
-            console.log("No active bots found.");
-        }
-         // Initial sort and render based on the default tab
-        filterAndRenderBots();
-         // If a bot detail page was open, refresh its data
-         if (currentOpenBotId) {
-             const updatedBotData = currentBotList.find(bot => bot.id === currentOpenBotId);
-             if (updatedBotData) {
-                 renderBotDetails(updatedBotData);
-             } else {
-                 // Bot might have become inactive or deleted
-                 showAlert("Bot Info", "The bot you were viewing is no longer available.");
-                 showPage('home-page');
-                 currentOpenBotId = null;
-                 currentOpenBotData = null;
-             }
-         }
-
-    }, error => {
-        console.error("Error loading bots:", error);
-        botListContainer.innerHTML = '<p>Error loading bots. Please try again later.</p>';
-    });
-}
-
-// Load bots added by the current user
-function loadMyAddedBots() {
-    if (!userId) return;
-    const botsRef = db.ref('bots');
-
-    // Query bots added by the current user, including inactive ones for management
-    botsRef.orderByChild('adderUserId').equalTo(userId).once('value')
-        .then(snapshot => {
-            const myBots = [];
-            if (snapshot.exists()) {
-                snapshot.forEach(childSnapshot => {
-                    const botData = childSnapshot.val();
-                    botData.id = childSnapshot.key;
-                    myBots.push(botData);
-                });
-            }
-            renderMyAddedBots(myBots); // Render the list specifically for the "My Bots" area
-        })
-        .catch(error => {
-            console.error("Error loading my added bots:", error);
-             myAddedBotsListContainer.innerHTML = '<p>Error loading your bots.</p>';
         });
+    });
+
+    // Add Bot Form
+    addBotForm.addEventListener('submit', handleAddBotSubmit);
+
+    // Profile Actions
+    dailyShareButton.addEventListener('click', openDailySharePopup);
+    earnAdsButton.addEventListener('click', handleEarnAdsClick);
+
+    // Boost Actions
+    boostOptions.forEach(button => {
+        button.addEventListener('click', handleBoostSelection);
+    });
+}
+
+function openPopup(popupId) {
+    const popup = document.getElementById(popupId);
+    if (popup) {
+        popup.classList.add('active-popup');
+        // Optional: disable background scroll while popup is open
+        // document.body.style.overflow = 'hidden';
+    }
+}
+
+function closePopup(popupId) {
+    const popup = document.getElementById(popupId);
+    if (popup) {
+        popup.classList.remove('active-popup');
+        // Optional: re-enable background scroll
+        // document.body.style.overflow = '';
+
+        // Reset specific popups if needed
+         if (popupId === 'add-bot-popup') {
+             addBotForm.reset();
+             document.getElementById('edit-bot-id').value = ''; // Clear edit ID
+             document.getElementById('submit-bot-button').textContent = 'Add Bot';
+         }
+         if (popupId === 'boost-popup') {
+             boostStatus.textContent = '';
+             boostBotIdInput.value = '';
+             boostOptions.forEach(btn => btn.disabled = false); // Re-enable options
+         }
+         if (popupId === 'daily-share-popup') {
+             dailyShareStatus.textContent = '';
+             claimDailyShareButton.disabled = false;
+         }
+    }
+}
+
+function showInfoPopup(title, message) {
+    infoPopupTitle.textContent = title;
+    infoPopupMessage.textContent = message;
+    openPopup('info-popup');
 }
 
 
-// Add or Update Bot in Firebase
-function handleAddOrUpdateBot(event) {
+// --- Add/Edit Bot Logic ---
+function openAddBotPopup(editBotData = null) {
+     addBotForm.reset(); // Clear previous entries
+    const submitButton = document.getElementById('submit-bot-button');
+    const editBotIdInput = document.getElementById('edit-bot-id');
+
+    if (editBotData) {
+        // Populate form for editing
+        document.getElementById('bot-name').value = editBotData.name || '';
+        document.getElementById('bot-description').value = editBotData.description || '';
+        document.getElementById('bot-link').value = editBotData.link || '';
+        document.getElementById('bot-image').value = editBotData.imageLink || '';
+        document.getElementById('bot-community').value = editBotData.telegramCommunity || '';
+        document.getElementById('bot-airdrop-name').value = editBotData.airdropName || '';
+        document.getElementById('bot-airdrop-points').value = editBotData.airdropPoints || '';
+        document.getElementById('bot-active').checked = editBotData.active !== undefined ? editBotData.active : true;
+        editBotIdInput.value = editBotData.id; // Store the ID for update
+        submitButton.textContent = 'Update Bot';
+        addBotPopup.querySelector('h2').textContent = 'Edit Bot';
+
+    } else {
+         // Setup for adding new
+        editBotIdInput.value = '';
+        submitButton.textContent = 'Add Bot';
+        addBotPopup.querySelector('h2').textContent = 'Add New Bot';
+        document.getElementById('bot-active').checked = true; // Default to active
+    }
+
+    openPopup('add-bot-popup');
+}
+
+async function handleAddBotSubmit(event) {
     event.preventDefault();
-    const botId = editBotIdInput.value; // Get potential ID for editing
+    if (!currentUser || !db) return;
+
+    const submitButton = document.getElementById('submit-bot-button');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Saving...';
+
+    const botIdToEdit = document.getElementById('edit-bot-id').value;
 
     const botData = {
         name: document.getElementById('bot-name').value.trim(),
         description: document.getElementById('bot-description').value.trim(),
         link: document.getElementById('bot-link').value.trim(),
-        image: document.getElementById('bot-image').value.trim() || null, // Store null if empty
-        airdropName: document.getElementById('airdrop-name').value.trim() || null,
-        airdropPoints: document.getElementById('airdrop-points').value ? parseInt(document.getElementById('airdrop-points').value, 10) : null,
-        telegramCommunity: document.getElementById('telegram-community').value.trim() || null,
-        adderUserId: userId,
-        adderUsername: userName,
-        adderFirstName: userFirstName,
-        // Don't overwrite these on update unless intended
-        // likeCount: 0, // Only set on creation
-        // createdAt: firebase.database.ServerValue.TIMESTAMP, // Only set on creation
-        // active: true // Only set on creation initially
+        imageLink: document.getElementById('bot-image').value.trim() || null, // Use null if empty
+        telegramCommunity: document.getElementById('bot-community').value.trim() || null,
+        airdropName: document.getElementById('bot-airdrop-name').value.trim() || null,
+        airdropPoints: parseInt(document.getElementById('bot-airdrop-points').value) || null,
+        active: document.getElementById('bot-active').checked,
+        // Fields set only on creation or fetched for update
+        submitterId: botIdToEdit ? allBots[botIdToEdit]?.submitterId : currentUser.id,
+        submitterUsername: botIdToEdit ? allBots[botIdToEdit]?.submitterUsername : (currentUser.username || `user${currentUser.id}`),
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
     };
 
     // Basic Validation
-    if (!botData.name || !botData.description || !botData.link) {
-        showAlert("Validation Error", "Bot Name, Description, and Link are required.");
-        return;
-    }
-     if (!isValidUrl(botData.link)) {
-         showAlert("Validation Error", "Please enter a valid Bot Link (starting with http:// or https:// or t.me/).");
-         return;
-     }
-     if (botData.image && !isValidUrl(botData.image)) {
-         showAlert("Validation Error", "Please enter a valid Image Link or leave it empty.");
-         return;
-     }
-      if (botData.telegramCommunity && !isValidUrl(botData.telegramCommunity)) {
-         showAlert("Validation Error", "Please enter a valid Telegram Community Link or leave it empty.");
-         return;
-     }
-
-
-    submitBotButton.disabled = true;
-    submitBotButton.textContent = botId ? 'Updating...' : 'Adding...';
-
-    if (botId) {
-        // --- Update existing bot ---
-         const updates = {};
-         // Only update fields that were provided in the form
-         for (const key in botData) {
-             if (botData[key] !== undefined && key !== 'adderUserId' && key !== 'adderUsername' && key !== 'adderFirstName') { // Don't update adder info
-                 updates[key] = botData[key];
-             }
-         }
-         updates.updatedAt = firebase.database.ServerValue.TIMESTAMP; // Add updated timestamp
-
-        db.ref(`bots/${botId}`).update(updates)
-            .then(() => {
-                showAlert("Success", "Bot updated successfully!");
-                hidePopup('add-bot-popup');
-                loadBots(); // Reload bot list
-                loadMyAddedBots(); // Reload user's bot list
-            })
-            .catch(error => {
-                console.error("Error updating bot:", error);
-                showAlert("Error", "Could not update the bot. Please try again.");
-            })
-            .finally(() => {
-                 resetAddBotForm(); // Reset form even on error
-                 submitBotButton.disabled = false; // Re-enable button
-             });
-
-    } else {
-        // --- Add new bot ---
-         // Add creation-specific fields
-         botData.likeCount = 0;
-         botData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-         botData.active = true; // New bots are active by default
-         botData.boostedUntil = 0; // Not boosted initially
-
-        const newBotRef = db.ref('bots').push(); // Generate unique ID
-        newBotRef.set(botData)
-            .then(() => {
-                showAlert("Success", "Bot added successfully!");
-                hidePopup('add-bot-popup');
-                loadBots(); // Reload bot list
-                // Switch to home page after adding
-                 showPage('home-page');
-                 setActiveTab('all-bots'); // Ensure 'All Bots' tab is active
-            })
-            .catch(error => {
-                console.error("Error adding bot:", error);
-                showAlert("Error", "Could not add the bot. Please try again.");
-            })
-            .finally(() => {
-                 resetAddBotForm(); // Reset form even on error
-                 submitBotButton.disabled = false; // Re-enable button
-             });
-    }
-}
-
-// Delete Bot (Only adder can delete)
-function handleDeleteBot() {
-    const botId = editBotIdInput.value;
-    if (!botId) {
-        showAlert("Error", "No bot selected for deletion.");
+    if (!botData.name || !botData.description || !botData.link || !botData.link.startsWith('https://t.me/')) {
+        showInfoPopup("Validation Error", "Please fill in all required fields (*) correctly. Bot Link must start with https://t.me/");
+        submitButton.disabled = false;
+        submitButton.textContent = botIdToEdit ? 'Update Bot' : 'Add Bot';
         return;
     }
 
-    // Confirmation Step (Important!)
-     tg.showConfirm(`Are you sure you want to delete the bot "${document.getElementById('bot-name').value}"? This cannot be undone.`, (confirmed) => {
-         if (confirmed) {
-             deleteBotButton.disabled = true;
-             deleteBotButton.textContent = 'Deleting...';
+    try {
+        if (botIdToEdit) {
+            // --- Update Existing Bot ---
+             // Ensure user owns the bot they are trying to edit
+            if (allBots[botIdToEdit]?.submitterId !== currentUser.id) {
+                 throw new Error("You don't have permission to edit this bot.");
+            }
+            const botRef = db.ref(`bots/${botIdToEdit}`);
+            await botRef.update(botData);
+            showInfoPopup("Success", "Bot updated successfully!");
+        } else {
+            // --- Add New Bot ---
+            botData.createdAt = firebase.database.ServerValue.TIMESTAMP;
+            botData.likesCount = 0; // Initialize likes
+             botData.boostEndDate = 0; // Initialize boost
+            const newBotRef = db.ref('bots').push();
+            await newBotRef.set(botData);
+            showInfoPopup("Success", "Bot added successfully!");
+        }
 
-             // You might want to add an 'inactive' flag instead of truly deleting
-             // db.ref(`bots/${botId}`).update({ active: false, deletedAt: firebase.database.ServerValue.TIMESTAMP })
-             // For actual deletion:
-             db.ref(`bots/${botId}`).remove()
-                 .then(() => {
-                     showAlert("Success", "Bot deleted successfully.");
-                     hidePopup('add-bot-popup');
-                     loadBots(); // Refresh home list
-                     loadMyAddedBots(); // Refresh user's list
-                     // Also consider deleting related data like comments or likes if necessary
-                     // db.ref(`comments/${botId}`).remove();
-                     // db.ref(`likes/${botId}`).remove();
-                     // You'd also need to adjust points if likes are removed... deletion can be complex.
-                 })
-                 .catch(error => {
-                     console.error("Error deleting bot:", error);
-                     showAlert("Error", "Could not delete the bot.");
-                 })
-                 .finally(() => {
-                     resetAddBotForm();
-                 });
-         }
-     });
+        closePopup('add-bot-popup');
+        tg.HapticFeedback.notificationOccurred('success');
+        // displayBots(); // Data listener will automatically update the list
+    } catch (error) {
+        console.error("Error saving bot:", error);
+        showInfoPopup("Error", `Failed to save bot: ${error.message}`);
+        tg.HapticFeedback.notificationOccurred('error');
+    } finally {
+        submitButton.disabled = false;
+         // Text content reset happens in closePopup
+    }
 }
 
+function handleEditBot(botId) {
+     const botToEdit = allBots[botId];
+     if (botToEdit && botToEdit.submitterId === currentUser.id) {
+         openAddBotPopup(botToEdit);
+     } else {
+         showInfoPopup("Permission Denied", "You can only edit bots you submitted.");
+     }
+ }
 
-// Toggle Like/Unlike Bot
-function toggleLikeBot(botId, likeButtonElement) {
-    if (!userId || !botId) return;
+
+// --- Like Logic ---
+async function handleLikeBot(botId, isFromDetailPage = false) {
+    if (!currentUser || !db || !botId) return;
 
     const botRef = db.ref(`bots/${botId}`);
-    const userLikesRef = db.ref(`users/${userId}/likes/${botId}`);
-    const liked = userLikes.hasOwnProperty(botId) && userLikes[botId] === true; // Check if user already liked this bot
+    const userLikesRef = db.ref(`users/${currentUser.id}/likedBots/${botId}`);
+    const userPointsRef = db.ref(`users/${currentUser.id}/points`);
+    const botData = allBots[botId];
 
-    // Prevent liking own bot? (Optional rule)
-     // const botData = currentBotList.find(b => b.id === botId);
-     // if (botData && botData.adderUserId === userId) {
-     //     showAlert("Info", "You cannot like your own bot.");
-     //     return;
-     // }
-
-    // Use a transaction for atomic updates
-    botRef.transaction(currentData => {
-        if (currentData === null) {
-            return null; // Bot doesn't exist
-        }
-        if (liked) {
-            // Unlike
-            currentData.likeCount = (currentData.likeCount || 1) - 1; // Decrement, ensure not negative
-        } else {
-            // Like
-            currentData.likeCount = (currentData.likeCount || 0) + 1; // Increment
-        }
-        return currentData; // Return the modified data
-    })
-    .then(result => {
-        if (!result.committed) {
-            console.error("Like transaction failed or aborted for bot:", botId);
-            showAlert("Error", "Could not update like status. Please try again.");
-            return; // Stop further processing
-        }
-
-        // Update user's like status AFTER bot like count is updated
-        const newLikeStatus = !liked;
-        userLikesRef.set(newLikeStatus ? true : null) // Set to true if liked, null to remove if unliked
-            .then(() => {
-                console.log(`User ${userId} ${newLikeStatus ? 'liked' : 'unliked'} bot ${botId}`);
-                // Update local state immediately for faster UI feedback
-                if (newLikeStatus) {
-                    userLikes[botId] = true;
-                } else {
-                    delete userLikes[botId];
-                }
-                // Visually update the button state (could also rely on data reload, but this is faster)
-                if (likeButtonElement) {
-                    likeButtonElement.classList.toggle('liked', newLikeStatus);
-                     // Update count display if available (e.g., on home page card)
-                     const countElement = likeButtonElement.closest('.bot-actions')?.querySelector('.like-count');
-                     if (countElement) {
-                         const currentCount = parseInt(countElement.textContent || '0', 10);
-                         countElement.textContent = newLikeStatus ? currentCount + 1 : Math.max(0, currentCount - 1);
-                     }
-                     // Update detail page count if visible
-                     const detailCountElement = document.getElementById('detail-like-count');
-                     if (detailCountElement && currentOpenBotId === botId) {
-                          const currentCount = parseInt(detailCountElement.textContent || '0', 10);
-                         detailCountElement.textContent = newLikeStatus ? currentCount + 1 : Math.max(0, currentCount - 1);
-                     }
-                }
-
-                // Award points to the bot adder if liked (and not unliked)
-                if (newLikeStatus) {
-                    const botData = result.snapshot.val(); // Get the final bot data from transaction
-                     if (botData && botData.adderUserId && botData.adderUserId !== userId) { // Check if adder exists and is not the liker
-                         awardPoints(botData.adderUserId, LIKE_REWARD_FOR_ADDER, `Liked bot: ${botData.name}`);
-                     }
-                }
-                 // Optional: Deduct points if unliked? (Usually not done)
-
-            })
-            .catch(error => {
-                 console.error("Error updating user like status:", error);
-                 // Attempt to revert the like count? Complex, maybe just log error.
-                 showAlert("Error", "Could not save your like preference.");
-             });
-    })
-    .catch(error => {
-        console.error("Like transaction error:", error);
-        showAlert("Database Error", "An error occurred while liking the bot.");
-    });
-}
-
-// Award points to a user
-function awardPoints(targetUserId, amount, reason = "Points awarded") {
-    if (!targetUserId || amount <= 0) return;
-    const userPointsRef = db.ref(`users/${targetUserId}/points`);
-
-    userPointsRef.transaction(currentPoints => {
-        return (currentPoints || 0) + amount;
-    })
-    .then(result => {
-        if (result.committed) {
-            console.log(`Awarded ${amount} points to user ${targetUserId}. Reason: ${reason}. New total: ${result.snapshot.val()}`);
-             // Log the transaction (optional but good practice)
-             logTransaction(targetUserId, amount, reason);
-             // If the current user received points, update their UI immediately
-             if (targetUserId === userId) {
-                 userPoints = result.snapshot.val(); // Update local state
-                 profilePoints.textContent = userPoints;
-             }
-        } else {
-            console.warn(`Point award transaction aborted for user ${targetUserId}.`);
-        }
-    })
-    .catch(error => {
-        console.error(`Error awarding points to user ${targetUserId}:`, error);
-    });
-}
-
-
-// Deduct points from a user
-function deductPoints(targetUserId, amount, reason = "Points deducted") {
-    if (!targetUserId || amount <= 0) return Promise.reject("Invalid user or amount"); // Return a rejected promise
-    const userPointsRef = db.ref(`users/${targetUserId}/points`);
-
-    return new Promise((resolve, reject) => { // Wrap in promise for better flow control
-        userPointsRef.transaction(currentPoints => {
-            const current = currentPoints || 0;
-            if (current < amount) {
-                return; // Abort transaction: Insufficient points
-            }
-            return current - amount;
-        })
-        .then(result => {
-            if (result.committed) {
-                console.log(`Deducted ${amount} points from user ${targetUserId}. Reason: ${reason}. New total: ${result.snapshot.val()}`);
-                logTransaction(targetUserId, -amount, reason); // Log as negative amount
-                if (targetUserId === userId) {
-                     userPoints = result.snapshot.val(); // Update local state
-                     profilePoints.textContent = userPoints;
-                 }
-                resolve(true); // Resolve promise indicating success
-            } else {
-                 console.warn(`Point deduction transaction aborted for user ${targetUserId} (Likely insufficient points).`);
-                 reject("Insufficient points"); // Reject promise
-            }
-        })
-        .catch(error => {
-            console.error(`Error deducting points from user ${targetUserId}:`, error);
-             reject("Database error during deduction"); // Reject promise
-        });
-    });
-}
-
-
-// Log Transactions (Optional but recommended)
-function logTransaction(targetUserId, amount, reason) {
-    const logRef = db.ref(`transactions/${targetUserId}`).push();
-    logRef.set({
-        amount: amount,
-        reason: reason,
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
-        userId: targetUserId // Redundant but useful for querying
-    }).catch(error => console.error("Error logging transaction:", error));
-}
-
-
-// --- Ad Integration ---
-function watchAdForPoints() {
-    if (!userId) return;
-     adStatus.textContent = 'Loading ad...';
-     watchAdButton.disabled = true;
-
-    // Check cooldown (Optional but recommended)
-     const lastAdTimeRef = db.ref(`users/${userId}/lastAdWatched`);
-     lastAdTimeRef.once('value').then(snapshot => {
-         const lastAdTime = snapshot.val();
-         const now = Date.now();
-         if (lastAdTime && (now - lastAdTime < AD_COOLDOWN_MINUTES * 60 * 1000)) {
-             const minutesRemaining = Math.ceil((AD_COOLDOWN_MINUTES * 60 * 1000 - (now - lastAdTime)) / (60 * 1000));
-              adStatus.textContent = `Please wait ${minutesRemaining} min before watching another ad.`;
-              showAlert("Cooldown", `Please wait ${minutesRemaining} more minute(s) to earn points.`);
-              watchAdButton.disabled = false; // Re-enable button
-              // hidePopup('earn-popup'); // Optionally hide popup
-              return; // Exit if cooldown active
-          }
-
-          // Proceed to show ad if cooldown passed or not set
-          console.log("Attempting to show rewarded ad...");
-          // Use the provided SDK function 'show_9263144'
-          show_9263144()
-              .then(() => {
-                  console.log("Ad watched successfully!");
-                  adStatus.textContent = `Ad finished! Awarding ${AD_REWARD} points...`;
-                  // Award points using the transaction function
-                  awardPoints(userId, AD_REWARD, "Watched Rewarded Ad");
-                   // Update last ad watched time AFTER successful watch and reward attempt
-                   lastAdTimeRef.set(firebase.database.ServerValue.TIMESTAMP);
-                   // Optionally provide user feedback
-                   setTimeout(() => {
-                      hidePopup('earn-popup');
-                      showAlert("Success!", `You earned ${AD_REWARD} points!`);
-                   }, 1500); // Delay slightly to show status message
-              })
-              .catch((error) => {
-                   console.error("Ad SDK Error or Ad Closed Early:", error);
-                   adStatus.textContent = 'Ad failed to load or was closed.';
-                   showAlert("Ad Error", "Could not load the ad, or it was closed before completion. No points awarded.");
-              })
-              .finally(() => {
-                   watchAdButton.disabled = false; // Re-enable button
-              });
-
-     }).catch(error => {
-         console.error("Error checking ad cooldown:", error);
-         adStatus.textContent = 'Error checking cooldown.';
-         watchAdButton.disabled = false; // Re-enable button
-          showAlert("Error", "Could not check ad availability. Please try again.");
-      });
-}
-
-// --- Bot Boosting ---
-function openBoostPopup(botId) {
-     // Find the bot data to potentially display its name
-     const botData = currentBotList.find(b => b.id === botId) || currentOpenBotData; // Check current list or detail view data
-
-     if (!botData) {
-         showAlert("Error", "Could not find bot data to boost.");
-         return;
-     }
-     // Check if the current user is the adder
-     if (botData.adderUserId !== userId) {
-         showAlert("Permission Denied", "You can only boost bots that you have added.");
-         return;
-     }
-
-    boostBotIdInput.value = botId;
-    boostStatus.textContent = ''; // Clear previous status
-     // You could add the bot name to the popup title here if desired
-     // boostPopup.querySelector('h2').textContent = `Boost Bot: ${botData.name}`;
-    showPopup('boost-popup');
-}
-
-function purchaseBoost(botId, durationDays, cost) {
-    if (!userId || !botId || !durationDays || !cost) return;
-
-    boostStatus.textContent = `Processing boost for ${durationDays} day(s)...`;
-    boostOptionsContainer.style.pointerEvents = 'none'; // Disable buttons during processing
-
-    // 1. Deduct points first
-    deductPoints(userId, cost, `Boost bot ${botId} for ${durationDays} day(s)`)
-        .then(() => {
-            // 2. If points deducted successfully, update the bot's boostedUntil timestamp
-            const now = Date.now();
-            const boostEndTime = now + durationDays * 24 * 60 * 60 * 1000; // Calculate end time in milliseconds
-            const botRef = db.ref(`bots/${botId}`);
-
-            // Check current boostedUntil time to extend, not just overwrite
-             botRef.child('boostedUntil').once('value').then(snapshot => {
-                 const currentBoostEnd = snapshot.val() || 0;
-                 const startTime = Math.max(now, currentBoostEnd); // Start boost from now or end of current boost, whichever is later
-                 const finalBoostEndTime = startTime + durationDays * 24 * 60 * 60 * 1000;
-
-                 botRef.update({ boostedUntil: finalBoostEndTime })
-                     .then(() => {
-                         boostStatus.textContent = `Success! Bot boosted until ${new Date(finalBoostEndTime).toLocaleString()}.`;
-                         console.log(`Bot ${botId} boosted until ${finalBoostEndTime}`);
-                         loadBots(); // Reload bots to reflect boost status in sorting/display
-                         setTimeout(() => {
-                            hidePopup('boost-popup');
-                         }, 2500);
-                     })
-                     .catch(error => {
-                         console.error("Error updating bot boost time:", error);
-                         boostStatus.textContent = 'Error applying boost. Points deducted but boost failed. Contact support.';
-                          // !!! Critical: Need a way to potentially refund points here or flag for manual review
-                          logTransaction(userId, cost, `REFUND FAILED BOOST: Bot ${botId}`); // Log refund attempt/failure
-                          showAlert("Critical Error", "Failed to apply boost after points were deducted. Please contact support.");
-                      });
-             }).catch(error => {
-                 console.error("Error reading current boost time:", error);
-                 boostStatus.textContent = 'Error checking current boost status.';
-                 // Refund points as the check failed before updating
-                 awardPoints(userId, cost, `REFUND: Failed to check boost status for bot ${botId}`);
-             });
-        })
-        .catch(errorMsg => {
-            // Point deduction failed (likely insufficient points)
-            boostStatus.textContent = `Boost failed: ${errorMsg}.`;
-            console.warn(`Boost purchase failed for bot ${botId}: ${errorMsg}`);
-        })
-        .finally(() => {
-            boostOptionsContainer.style.pointerEvents = 'auto'; // Re-enable buttons
-        });
-}
-
-// --- Comments ---
-function loadComments(botId) {
-    const commentsRef = db.ref(`comments/${botId}`).orderByChild('timestamp').limitToLast(50); // Load last 50 comments
-    commentsList.innerHTML = '<p>Loading comments...</p>'; // Show loading indicator
-
-    commentsRef.on('value', snapshot => {
-        commentsList.innerHTML = ''; // Clear previous comments
-        if (snapshot.exists()) {
-            snapshot.forEach(commentSnapshot => {
-                const commentData = commentSnapshot.val();
-                renderComment(commentData);
-            });
-        } else {
-            commentsList.innerHTML = '<p>No comments yet. Be the first!</p>';
-        }
-         // Scroll to bottom of comments maybe? Optional.
-         // commentsList.scrollTop = commentsList.scrollHeight;
-    }, error => {
-        console.error("Error loading comments:", error);
-        commentsList.innerHTML = '<p>Error loading comments.</p>';
-    });
-
-    // Store the bot ID for submitting new comments
-    submitCommentButton.dataset.botId = botId;
-}
-
-function renderComment(commentData) {
-    if (!commentData) return;
-    const commentDiv = document.createElement('div');
-    commentDiv.classList.add('comment');
-
-    const meta = document.createElement('div');
-    meta.classList.add('comment-meta');
-    meta.innerHTML = `<strong>${commentData.username || commentData.firstName || 'User'}</strong> <span class="timestamp">(${new Date(commentData.timestamp).toLocaleString()})</span>`;
-
-    const text = document.createElement('p');
-    text.classList.add('comment-text');
-    // Sanitize comment text before displaying to prevent XSS
-    text.textContent = commentData.text; // Basic text content rendering is safer
-
-    commentDiv.appendChild(meta);
-    commentDiv.appendChild(text);
-
-    // Prepend new comments to show latest first? Or append for chronological order. Append = default.
-    commentsList.appendChild(commentDiv);
-    // If prepending: commentsList.insertBefore(commentDiv, commentsList.firstChild);
-}
-
-function handleSubmitComment() {
-     const botId = submitCommentButton.dataset.botId; // Get bot ID from button's data attribute
-     const commentText = newCommentText.value.trim();
-
-     if (!botId) {
-         showAlert("Error", "Cannot submit comment: Bot ID is missing.");
-         return;
-     }
-     if (!commentText) {
-         showAlert("Error", "Comment cannot be empty.");
-         return;
-     }
-     if (!userId) {
-         showAlert("Error", "You must be logged in to comment.");
-         return;
-     }
-
-     submitCommentButton.disabled = true;
-     submitCommentButton.textContent = 'Posting...';
-
-     const commentData = {
-         userId: userId,
-         username: userName,
-         firstName: userFirstName,
-         text: commentText,
-         timestamp: firebase.database.ServerValue.TIMESTAMP,
-         botId: botId // Store botId with comment for potential future queries
-     };
-
-     const newCommentRef = db.ref(`comments/${botId}`).push();
-     newCommentRef.set(commentData)
-         .then(() => {
-             console.log("Comment posted successfully for bot:", botId);
-             newCommentText.value = ''; // Clear textarea
-             // The 'onValue' listener for comments should automatically update the list
-         })
-         .catch(error => {
-             console.error("Error posting comment:", error);
-             showAlert("Error", "Could not post your comment. Please try again.");
-         })
-         .finally(() => {
-             submitCommentButton.disabled = false;
-             submitCommentButton.textContent = 'Submit Comment';
-         });
-}
-
-
-// --- Rendering Functions ---
-
-// Update Profile UI
-function updateProfileUI(name, username, id, points) {
-    profileName.textContent = `${name} ${userLastName}`.trim();
-    profileUsername.textContent = username || 'Not Set';
-    profileChatId.textContent = id;
-    profilePoints.textContent = points;
-}
-
-// Filter, Sort, and Render Bots based on current tab and search
-function filterAndRenderBots() {
-     let filtered = [...currentBotList]; // Create a copy to avoid modifying the original list
-
-     // 1. Filter by Search Term (if any)
-     const searchTerm = searchInput.value.trim().toLowerCase();
-     if (searchTerm) {
-         filtered = filtered.filter(bot =>
-             (bot.name && bot.name.toLowerCase().includes(searchTerm)) ||
-             (bot.description && bot.description.toLowerCase().includes(searchTerm))
-         );
-     }
-
-     // 2. Filter by Tab ('my-bots' requires separate loading, handled elsewhere)
-     if (currentTab === 'trending-bots') {
-          // Trending logic: Boosted first, then by likes.
-          // Boosted bots are considered trending.
-          filtered = filtered.filter(bot => isBoosted(bot)); // Show only boosted bots for now
-     }
-     // 'all-bots' tab shows all (already filtered by search if needed)
-     // 'my-bots' tab content is handled by renderMyAddedBots
-
-     // 3. Sort
-     if (currentTab === 'trending-bots') {
-         // Sort boosted bots potentially by remaining boost time or just likes within boosted
-          filtered.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0)); // Simple like sort for boosted
-     } else if (currentTab === 'all-bots') {
-          // Default sort for "All Bots": Boosted first, then by likes descending
-          filtered.sort((a, b) => {
-              const aBoosted = isBoosted(a);
-              const bBoosted = isBoosted(b);
-              if (aBoosted && !bBoosted) return -1; // a comes first
-              if (!aBoosted && bBoosted) return 1;  // b comes first
-              // If both boosted or both not boosted, sort by likes
-              return (b.likeCount || 0) - (a.likeCount || 0);
-          });
-     }
-     // No specific sorting needed for 'my-bots' here, handled in its own render function
-
-
-    // 4. Render the final list for the current active tab's container
-    // Only render if the home page is active and not the 'my-bots' tab (which uses a different container)
-     if (document.getElementById('home-page').classList.contains('active') && currentTab !== 'my-bots') {
-         renderBotList(filtered, botListContainer);
-         displayedBots = filtered; // Store the currently displayed list
-     }
-}
-
-// Render the Bot List on Home Page
-function renderBotList(botsToRender, container) {
-    container.innerHTML = ''; // Clear previous list
-
-    if (botsToRender.length === 0) {
-        let message = "No bots found.";
-        if (searchInput.value.trim()) {
-             message = "No bots match your search.";
-         } else if (currentTab === 'trending-bots') {
-             message = "No trending bots right now. Boost yours to appear here!";
-         } else if (currentTab === 'my-bots') {
-             message = "You haven't added any bots yet."; // Message specific to my bots tab
-         }
-        container.innerHTML = `<p>${message}</p>`;
+    if (!botData) {
+        console.error("Bot data not found for like:", botId);
         return;
     }
 
-    botsToRender.forEach(bot => {
-        const card = document.createElement('div');
-        card.classList.add('bot-card');
-        card.dataset.botId = bot.id; // Store bot ID for easy access
+    // Prevent liking own bot (optional rule)
+    // if (botData.submitterId === currentUser.id) {
+    //     showInfoPopup("Info", "You cannot like your own submitted bot.");
+    //     return;
+    // }
 
-        const icon = document.createElement('img');
-        icon.classList.add('bot-icon');
-        icon.src = bot.image || 'icons/default_bot.png'; // Use default if no image
-        icon.alt = bot.name;
-        icon.onerror = () => { icon.src = 'icons/default_bot.png'; }; // Fallback on error
+    tg.HapticFeedback.impactOccurred('light');
 
-        const info = document.createElement('div');
-        info.classList.add('bot-info');
-        const name = document.createElement('h3');
-        name.textContent = bot.name;
-        const desc = document.createElement('p');
-        desc.textContent = bot.description;
-        // Add boosted indicator if applicable
-         if (isBoosted(bot)) {
-             const boostedIndicator = document.createElement('span');
-             boostedIndicator.textContent = '🚀 Boosted';
-             boostedIndicator.style.fontSize = '0.8em';
-             boostedIndicator.style.color = '#17a2b8'; // Info color
-             boostedIndicator.style.marginLeft = '5px';
-             name.appendChild(boostedIndicator);
-         }
+    try {
+        // Use a transaction to ensure atomicity
+        const result = await botRef.transaction(currentData => {
+            if (currentData === null) {
+                return null; // Bot doesn't exist
+            }
 
-        info.appendChild(name);
-        info.appendChild(desc);
+            // Check if user already liked using local state first for responsiveness
+            const alreadyLiked = userProfile.likedBots && userProfile.likedBots[botId];
 
-        const actions = document.createElement('div');
-        actions.classList.add('bot-actions');
-        const likeButton = document.createElement('button');
-        likeButton.classList.add('like-button');
-        likeButton.innerHTML = '❤️'; // Using emoji heart
-         // Check if the current user has liked this bot
-         if (userLikes && userLikes[bot.id]) {
-             likeButton.classList.add('liked');
-         }
-        const likeCount = document.createElement('span');
-        likeCount.classList.add('like-count');
-        likeCount.textContent = bot.likeCount || 0;
-
-        actions.appendChild(likeButton);
-        actions.appendChild(likeCount);
-
-        card.appendChild(icon);
-        card.appendChild(info);
-        card.appendChild(actions);
-
-        container.appendChild(card);
-    });
-}
-
-// Render the list of bots added by the user (for the "My Bots" tab/page)
-function renderMyAddedBots(myBots) {
-     myAddedBotsListContainer.innerHTML = ''; // Clear previous
-     if (myBots.length === 0) {
-         myAddedBotsListContainer.innerHTML = '<p>You haven\'t added any bots yet. Use the \'+\' button to add one!</p>';
-         return;
-     }
-
-     // Sort my bots maybe by creation date or name?
-     myBots.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Sort newest first
-
-     myBots.forEach(bot => {
-         const item = document.createElement('div');
-         item.classList.add('my-bot-item');
-
-         const nameSpan = document.createElement('span');
-         nameSpan.textContent = bot.name;
-         if (!bot.active) {
-             nameSpan.textContent += ' (Inactive)';
-             nameSpan.style.opacity = '0.6';
-         }
-
-         const actionsDiv = document.createElement('div');
-         actionsDiv.classList.add('my-bot-actions');
-
-         const editButton = document.createElement('button');
-         editButton.textContent = 'Edit';
-         editButton.classList.add('edit-my-bot');
-         editButton.dataset.botId = bot.id;
-
-         const boostButton = document.createElement('button');
-         boostButton.textContent = 'Boost';
-         boostButton.classList.add('boost-my-bot');
-         boostButton.dataset.botId = bot.id;
-         if (isBoosted(bot)) {
-             boostButton.textContent = 'Boosted';
-             boostButton.disabled = true; // Or show remaining time
-             boostButton.style.opacity = '0.7';
-         }
-
-         actionsDiv.appendChild(editButton);
-         actionsDiv.appendChild(boostButton);
-
-         item.appendChild(nameSpan);
-         item.appendChild(actionsDiv);
-         myAddedBotsListContainer.appendChild(item);
-     });
-}
-
-
-// View Bot Details
-function viewBotDetails(botId) {
-    currentOpenBotId = botId; // Store the ID of the bot being viewed
-     currentOpenBotData = currentBotList.find(bot => bot.id === botId); // Find from the current list
-
-    if (!currentOpenBotData) {
-        // Maybe bot became inactive or was deleted while user was browsing
-        // Attempt to fetch directly from Firebase once as a fallback
-        db.ref(`bots/${botId}`).once('value').then(snapshot => {
-            if (snapshot.exists()) {
-                 currentOpenBotData = snapshot.val();
-                 currentOpenBotData.id = botId; // Add ID back
-                 renderBotDetails(currentOpenBotData);
-                 loadComments(botId); // Load comments for this bot
-                 showPage('bot-detail-page');
+            if (alreadyLiked) {
+                // --- Unlike ---
+                currentData.likesCount = (currentData.likesCount || 0) - 1;
+                 if (currentData.likesCount < 0) currentData.likesCount = 0; // Prevent negative counts
             } else {
-                showAlert("Not Found", "The selected bot could not be found or is no longer available.");
-                 currentOpenBotId = null; // Reset
-                 currentOpenBotData = null;
-                 showPage('home-page'); // Go back home
-             }
-        }).catch(error => {
-             console.error("Error fetching bot details fallback:", error);
-             showAlert("Error", "Could not load bot details.");
-             currentOpenBotId = null;
-             currentOpenBotData = null;
-             showPage('home-page');
-         });
-        return;
-    }
+                // --- Like ---
+                currentData.likesCount = (currentData.likesCount || 0) + 1;
+            }
+            return currentData; // Return the modified data
+        });
 
-    // Render if data found in the current list
-    renderBotDetails(currentOpenBotData);
-    loadComments(botId); // Load comments for this bot
-    showPage('bot-detail-page');
-}
+        if (result.committed && result.snapshot.exists()) {
+            const newLikesCount = result.snapshot.val().likesCount;
+            const botSubmitterId = result.snapshot.val().submitterId;
+            const currentlyLiked = !(userProfile.likedBots && userProfile.likedBots[botId]); // Intention: true if we just liked it
 
-// Render Bot Details Page Content
-function renderBotDetails(botData) {
-     if (!botData) {
-         botDetailContent.innerHTML = "<p>Error: Bot data not available.</p>";
-         commentsSection.style.display = 'none'; // Hide comments if no bot data
-         return;
-     }
+            // Update user's likedBots list
+            await userLikesRef.set(currentlyLiked ? true : null); // Set true if liked, null if unliked (removes node)
 
-     botDetailName.textContent = botData.name; // Update header title
-
-     let airdropInfo = 'N/A';
-     if (botData.airdropName) {
-         airdropInfo = `${botData.airdropName}`;
-         if (botData.airdropPoints) {
-             airdropInfo += ` (${botData.airdropPoints} Points)`;
-         }
-     }
-
-     const isLiked = userLikes && userLikes[botData.id];
-     const canBoost = botData.adderUserId === userId; // Can user boost this bot?
-
-     botDetailContent.innerHTML = `
-        <img src="${botData.image || 'icons/default_bot.png'}" alt="${botData.name}" class="detail-bot-icon" onerror="this.src='icons/default_bot.png';">
-        <h2>${botData.name}</h2>
-        <p><strong>Description:</strong> ${botData.description}</p>
-        <p><strong>Bot Link:</strong> <a href="${botData.link}" target="_blank" rel="noopener noreferrer">${botData.link}</a></p>
-        ${botData.telegramCommunity ? `<p><strong>Community:</strong> <a href="${botData.telegramCommunity}" target="_blank" rel="noopener noreferrer">${botData.telegramCommunity}</a></p>` : ''}
-        <p><strong>Airdrop Info:</strong> ${airdropInfo}</p>
-        <p><strong>Added By:</strong> ${botData.adderFirstName || botData.adderUsername || 'Unknown'}</p>
-        <p><strong>Likes:</strong> <span id="detail-like-count">${botData.likeCount || 0}</span></p>
-         ${isBoosted(botData) ? `<p><strong>Status:</strong> 🚀 Boosted until ${new Date(botData.boostedUntil).toLocaleDateString()}</p>` : ''}
-
-        <div class="detail-action-buttons">
-            <button class="detail-like-button ${isLiked ? 'liked' : ''}" data-bot-id="${botData.id}">
-                ${isLiked ? '❤️ Liked' : '🤍 Like'}
-            </button>
-            ${canBoost ? `<button class="detail-boost-button" data-bot-id="${botData.id}">⚡ Boost Bot</button>` : ''}
-            <!-- Add Share button maybe? -->
-        </div>
-    `;
-
-    // Ensure comments section is visible
-     commentsSection.style.display = 'block';
-     newCommentText.value = ''; // Clear comment input
-}
-
-// --- Add/Edit Bot Popup Handling ---
-function openAddBotPopup() {
-     resetAddBotForm();
-     popupTitle.textContent = "Add New Bot";
-     submitBotButton.textContent = "Add Bot";
-     deleteBotButton.style.display = 'none'; // Hide delete button for new bots
-     showPopup('add-bot-popup');
-}
-
-function openEditBotPopup(botId) {
-     resetAddBotForm(); // Clear previous data first
-     popupTitle.textContent = "Edit Bot";
-     submitBotButton.textContent = "Update Bot";
-     deleteBotButton.style.display = 'inline-block'; // Show delete button
-     editBotIdInput.value = botId; // Set the ID for the update
-
-     // Fetch the bot data to pre-fill the form
-     db.ref(`bots/${botId}`).once('value')
-         .then(snapshot => {
-             if (snapshot.exists()) {
-                 const botData = snapshot.val();
-                  // Security check: Ensure current user is the adder
-                  if (botData.adderUserId !== userId) {
-                      showAlert("Permission Denied", "You can only edit bots you added.");
-                      resetAddBotForm(); // Clear potentially filled data
-                      return;
-                  }
-                 // Fill the form
-                 document.getElementById('bot-name').value = botData.name || '';
-                 document.getElementById('bot-description').value = botData.description || '';
-                 document.getElementById('bot-link').value = botData.link || '';
-                 document.getElementById('bot-image').value = botData.image || '';
-                 document.getElementById('airdrop-name').value = botData.airdropName || '';
-                 document.getElementById('airdrop-points').value = botData.airdropPoints || '';
-                 document.getElementById('telegram-community').value = botData.telegramCommunity || '';
-
-                 showPopup('add-bot-popup'); // Show popup after filling
+            // Update local state immediately for UI responsiveness
+            if (!userProfile.likedBots) userProfile.likedBots = {};
+             if (currentlyLiked) {
+                 userProfile.likedBots[botId] = true;
              } else {
-                 showAlert("Error", "Could not find the bot data to edit.");
+                 delete userProfile.likedBots[botId];
              }
-         })
-         .catch(error => {
-             console.error("Error fetching bot data for edit:", error);
-             showAlert("Error", "Could not load bot data for editing.");
-         });
+
+             // Award points to the submitter if someone liked their bot (and it wasn't an unlike)
+             // Only award points if it's not the submitter liking their own bot
+            if (currentlyLiked && botSubmitterId && botSubmitterId !== currentUser.id) {
+                const submitterPointsRef = db.ref(`users/${botSubmitterId}/points`);
+                await submitterPointsRef.transaction(currentPoints => {
+                    return (currentPoints || 0) + LIKE_REWARD_POINTS;
+                });
+                 console.log(`Awarded ${LIKE_REWARD_POINTS} points to user ${botSubmitterId} for like on bot ${botId}`);
+            }
+             // Decrease points if unliking (optional, can be complex/abused)
+             // We won't decrease points on unlike for simplicity here.
+
+            // Update UI
+            updateLikeButtonUI(botId, currentlyLiked, newLikesCount);
+
+            console.log(`Like/Unlike success for bot ${botId}. Liked: ${currentlyLiked}`);
+        } else {
+             throw new Error("Like transaction failed or bot was deleted.");
+        }
+
+    } catch (error) {
+        console.error("Error liking/unliking bot:", error);
+        showInfoPopup("Error", "Could not update like status. Please try again.");
+        // Revert UI optimisic update if needed (complex part)
+        // For now, rely on the next data fetch/listener update to correct the UI
+    }
 }
 
 
-function resetAddBotForm() {
-     addBotForm.reset(); // Resets all form fields
-     editBotIdInput.value = ''; // Clear hidden ID field
-     popupTitle.textContent = "Add New Bot";
-     submitBotButton.textContent = "Add Bot";
-     submitBotButton.disabled = false; // Ensure button is enabled
-     deleteBotButton.style.display = 'none'; // Hide delete button
-     deleteBotButton.disabled = false; // Ensure delete button is enabled
-     deleteBotButton.textContent = 'Delete Bot';
+// --- Points & Ads Logic ---
+async function updateUserPoints(pointsToAdd) {
+    if (!currentUser || !db || pointsToAdd === 0) return;
+
+    const userPointsRef = db.ref(`users/${currentUser.id}/points`);
+    try {
+        const result = await userPointsRef.transaction(currentPoints => {
+            // Ensure currentPoints is a number, default to 0 if null/undefined
+             const basePoints = (typeof currentPoints === 'number') ? currentPoints : 0;
+            return basePoints + pointsToAdd;
+        });
+
+        if (result.committed) {
+            userProfile.points = result.snapshot.val(); // Update local cache
+            updateProfileUI(); // Update displayed points
+            console.log(`Points updated by ${pointsToAdd}. New total: ${userProfile.points}`);
+            return true; // Indicate success
+        } else {
+             console.warn("Points transaction aborted.");
+             return false;
+        }
+    } catch (error) {
+        console.error("Error updating points:", error);
+        showInfoPopup("Error", "Failed to update points.");
+        return false;
+    }
 }
 
-// --- Search Handling ---
-function handleSearch() {
-    filterAndRenderBots(); // Re-filter and render the list on search input
+function openDailySharePopup() {
+    const now = Date.now();
+    const lastShare = userProfile.lastDailyShare || 0;
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    dailyShareStatus.textContent = ''; // Clear previous status
+    claimDailyShareButton.disabled = false; // Enable button initially
+
+    if (now - lastShare < oneDay) {
+        // Already claimed today
+        const nextAvailable = new Date(lastShare + oneDay);
+        dailyShareStatus.textContent = `Bonus already claimed today. Next available: ${nextAvailable.toLocaleTimeString()}`;
+        claimDailyShareButton.disabled = true;
+    } else {
+        dailyShareStatus.textContent = `Click claim to get ${DAILY_SHARE_POINTS} points!`;
+    }
+    openPopup('daily-share-popup');
 }
 
-// --- Share Functionality ---
-function handleShare() {
-     if (!userId) return;
-     // Basic Share: Create a referral link (can be enhanced)
-     // This is a simple example link, replace with your actual app URL if hosted
-     const appUrl = `https://t.me/${tg.WebApp?.botInfo?.username || 'YourBotUsername'}/${tg.WebApp?.pathFull || 'YourMiniAppName'}`; // Attempt to get bot/app name
-     const referralLink = `${appUrl}?start=${userId}`; // Add user ID as referral param
-     const shareText = `Check out this awesome Bot Market on Telegram! Find cool bots or add your own: ${referralLink}`;
+async function handleClaimDailyShare() {
+    const now = Date.now();
+    const lastShare = userProfile.lastDailyShare || 0;
+    const oneDay = 24 * 60 * 60 * 1000;
 
-     // Use Telegram's share functionality if available and applicable
-     // This might share directly to a chat. Check Telegram SDK docs for specific methods.
-     // Example using a generic approach:
-     try {
-         // Attempt to use Telegram's share URL scheme
-         tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`);
+    if (now - lastShare < oneDay) {
+        dailyShareStatus.textContent = "You can only claim the bonus once per day.";
+        claimDailyShareButton.disabled = true;
+        return;
+    }
 
-         // Optional: Give points for initiating share (could be abused)
-         // awardPoints(userId, 5, "Shared the app");
-         // showAlert("Sharing", "Opened Telegram share window. Thank you!");
+    claimDailyShareButton.disabled = true;
+    dailyShareStatus.textContent = 'Claiming...';
 
-     } catch (e) {
-         console.error("Share error:", e);
-         // Fallback: Show the link for manual copying
-         showAlert("Share Link", `Copy and share this link:\n${referralLink}\n\n${shareText}`);
+    const pointsUpdated = await updateUserPoints(DAILY_SHARE_POINTS);
+
+    if (pointsUpdated) {
+        // Update last claimed time in Firebase
+        const userLastShareRef = db.ref(`users/${currentUser.id}/lastDailyShare`);
+        try {
+            await userLastShareRef.set(now);
+            userProfile.lastDailyShare = now; // Update local cache
+            dailyShareStatus.textContent = `Success! ${DAILY_SHARE_POINTS} points added.`;
+            tg.HapticFeedback.notificationOccurred('success');
+            // Optionally close popup after a delay
+             setTimeout(() => closePopup('daily-share-popup'), 2000);
+        } catch (error) {
+            console.error("Failed to update last daily share time:", error);
+            // Points were likely still awarded, but log the error
+            dailyShareStatus.textContent = 'Points added, but failed to save claim time.';
+             // Maybe try to revert points? Complex. For now, just inform.
+        }
+    } else {
+        // updateUserPoints failed (already showed error popup)
+        dailyShareStatus.textContent = 'Failed to claim bonus. Please try again.';
+        claimDailyShareButton.disabled = false; // Re-enable if failed
+         tg.HapticFeedback.notificationOccurred('error');
+    }
+}
+
+function handleEarnAdsClick() {
+    if (adCooldown) {
+        showInfoPopup("Cooldown", `Please wait ${AD_COOLDOWN_MS / 1000} seconds between ads.`);
+        return;
+    }
+    if (typeof show_9263144 !== 'function') {
+         showInfoPopup("Error", "Ad SDK not loaded correctly.");
+         return;
+    }
+
+
+    earnAdsButton.disabled = true;
+    earnAdsButton.innerHTML = `<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>`; // Show loading inside button
+    showInfoPopup("Loading Ad", "Please wait while the ad loads..."); // Inform user
+
+    console.log("Attempting to show rewarded ad...");
+
+    show_9263144().then(async () => {
+        // --- Ad Watched Successfully ---
+        console.log("Ad watched successfully.");
+        closePopup('info-popup'); // Close the loading ad popup
+        showInfoPopup("Success!", `Ad watched! You earned ${AD_REWARD_POINTS} points.`);
+        tg.HapticFeedback.notificationOccurred('success');
+
+        const pointsUpdated = await updateUserPoints(AD_REWARD_POINTS);
+         if (!pointsUpdated) {
+             // Handle points update failure if necessary
+             console.error("Failed to update points after ad watch.");
+             showInfoPopup("Error", "Ad watched, but failed to update points. Please contact support.");
+         }
+
+        // Set cooldown
+        adCooldown = true;
+        setTimeout(() => {
+            adCooldown = false;
+            console.log("Ad cooldown finished.");
+        }, AD_COOLDOWN_MS);
+
+    }).catch((error) => {
+        // --- Ad Failed or Closed Early ---
+        console.error("Ad SDK error or ad closed:", error);
+         closePopup('info-popup'); // Close the loading ad popup
+        showInfoPopup("Ad Not Completed", "Ad was closed or failed to load. No points awarded.");
+         tg.HapticFeedback.notificationOccurred('warning');
+
+    }).finally(() => {
+        // --- Always re-enable button ---
+        earnAdsButton.disabled = false;
+         earnAdsButton.innerHTML = `<span class="material-symbols-outlined">paid</span> Earn Points`; // Restore button content
+    });
+}
+
+// --- Boost Logic ---
+ function handleBoostBot(botId) {
+     const bot = allBots[botId];
+     if (!bot || bot.submitterId !== currentUser.id) {
+         showInfoPopup("Error", "Bot not found or you don't own it.");
+         return;
      }
-}
 
+     boostBotIdInput.value = botId;
+     boostStatus.textContent = ''; // Clear previous status
 
-// --- Utility Functions ---
-
-// Debounce function to limit rapid calls (e.g., for search)
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Simple URL Validation
-function isValidUrl(string) {
-    // Basic check for http/https/t.me start and some characters
-    const pattern = /^(https?:\/\/|t\.me\/)[\-A-Za-z0-9+&@#\/%?=~_|!:,.;]*[\-A-Za-z0-9+&@#\/%=~_|]$/;
-    return !!pattern.test(string);
-}
-
-// Check if a bot is currently boosted
-function isBoosted(bot) {
-    return bot && bot.boostedUntil && bot.boostedUntil > Date.now();
-}
-
-// Set active tab visually and update state
-function setActiveTab(tabDataName) {
-     tabButtons.forEach(button => {
-         const isActive = button.dataset.tab === tabDataName;
-         button.classList.toggle('active', isActive);
-         if (isActive) {
-             currentTab = tabDataName;
+     // Disable options user can't afford
+     boostOptions.forEach(button => {
+         const cost = parseInt(button.dataset.cost);
+         button.disabled = userProfile.points < cost;
+         if (button.disabled) {
+             button.title = "Not enough points";
+         } else {
+              button.title = "";
          }
      });
-}
 
-// --- END ---
+     openPopup('boost-popup');
+ }
+
+ async function handleBoostSelection(event) {
+     const button = event.target;
+     const botId = boostBotIdInput.value;
+     const durationDays = parseInt(button.dataset.duration);
+     const cost = parseInt(button.dataset.cost);
+
+     if (!botId || !durationDays || !cost || !allBots[botId]) {
+         boostStatus.textContent = 'Error: Invalid boost selection.';
+         return;
+     }
+
+     if (userProfile.points < cost) {
+         boostStatus.textContent = 'Error: Not enough points.';
+         return;
+     }
+
+     // Disable all options during processing
+     boostOptions.forEach(btn => btn.disabled = true);
+     boostStatus.textContent = 'Processing boost...';
+
+     // 1. Deduct points
+     const pointsDeducted = await updateUserPoints(-cost); // Deduct points
+
+     if (!pointsDeducted) {
+         boostStatus.textContent = 'Error: Failed to deduct points. Please try again.';
+         boostOptions.forEach(btn => btn.disabled = userProfile.points < parseInt(btn.dataset.cost)); // Re-enable affordable options
+         return;
+     }
+
+     // 2. Update bot's boost end date in Firebase
+     const now = Date.now();
+     const currentBoostEnd = allBots[botId].boostEndDate || 0;
+     // Extend from now or from the current end date, whichever is later
+     const boostStartDate = Math.max(now, currentBoostEnd);
+     const newBoostEndDate = boostStartDate + (durationDays * 24 * 60 * 60 * 1000);
+
+     const botBoostRef = db.ref(`bots/${botId}/boostEndDate`);
+     try {
+         await botBoostRef.set(newBoostEndDate);
+         // Update local cache too (important!)
+         allBots[botId].boostEndDate = newBoostEndDate;
+
+         boostStatus.textContent = `Success! Bot boosted for ${durationDays} day(s).`;
+         tg.HapticFeedback.notificationOccurred('success');
+         // Update UI immediately if needed (e.g., add rocket icon) - relies on data listener mostly
+         displayBots(); // Re-render lists to show boosted status/sorting
+         updateMyBotsList();
+
+         setTimeout(() => closePopup('boost-popup'), 2500);
+
+     } catch (error) {
+         console.error("Error setting boost end date:", error);
+         boostStatus.textContent = 'Points deducted, but failed to set boost. Contact support.';
+         // CRITICAL: Need to handle refunding points here if possible or flag for manual review
+         // For simplicity now, we just show the error. A real app needs robust error handling/refund logic.
+         tg.HapticFeedback.notificationOccurred('error');
+         // Don't re-enable buttons here as state is inconsistent
+     }
+ }
+
+
+// --- Start the App ---
+initializeApp();
