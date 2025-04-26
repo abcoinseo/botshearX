@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bot Market Mini App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Firebase SDKs (Use the latest versions) -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <!-- Your Ad SDK -->
+    <script src='//whephiwums.com/sdk.js' data-zone='9263144' data-sdk='show_9263144'></script>
+</head>
+<body>
+
+    <div id="app">
+        <!-- Loading Indicator -->
+        <div id="loading-page" class="page active">
+            <div class="spinner"></div>
+            <p>Loading App...</p>
+        </div>
+
+        <!-- Error/Platform Indicator -->
+        <div id="error-page" class="page">
+            <p id="error-message">This app must be opened within Telegram.</p>
+        </div>
+
+        <!-- Home Page -->
+        <div id="home-page" class="page">
+            <header>
+                <h1>Bot Market</h1>
+                <input type="search" id="search-bot" placeholder="Search bots...">
+            </header>
+            <div class="tabs">
+                <button class="tab-button active" data-tab="all-bots">All Bots</button>
+                <button class="tab-button" data-tab="trending-bots">Trending</button>
+                 <button class="tab-button" data-tab="my-bots">My Bots</button> <!-- Added My Bots Tab -->
+            </div>
+            <div id="bot-list-container" class="content-area">
+                <!-- Bot cards will be loaded here -->
+                <p>Loading bots...</p>
+            </div>
+        </div>
+
+        <!-- Add Bot Page (Content often shown in a popup) -->
+        <div id="add-bot-page" class="page">
+            <header><h1>Add Your Bot</h1></header>
+             <div class="content-area">
+                <p>Use the '+' button in the navigation to add a new bot.</p>
+                <h2>My Added Bots</h2>
+                <div id="my-added-bots-list">
+                    <!-- List of bots added by the user for editing/boosting -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile-page" class="page">
+            <header><h1>Profile</h1></header>
+            <div class="content-area profile-info">
+                <p><strong>Name:</strong> <span id="profile-name">...</span></p>
+                <p><strong>Username:</strong> <span id="profile-username">...</span></p>
+                <p><strong>Chat ID:</strong> <span id="profile-chat-id">...</span></p>
+                <p><strong>Points:</strong> <span id="profile-points">0</span> <button id="earn-points-button">Earn Points</button></p>
+                 <button id="share-button">Share & Earn</button> <!-- Share Button -->
+            </div>
+        </div>
+
+        <!-- Bot Detail View (Could be a separate page or a modal/popup) -->
+        <div id="bot-detail-page" class="page">
+             <header>
+                <button id="back-to-home-button">< Back</button>
+                <h1 id="detail-bot-name">Bot Details</h1>
+            </header>
+            <div class="content-area" id="bot-detail-content">
+                <!-- Bot details loaded here -->
+            </div>
+             <div class="content-area" id="bot-comments-section">
+                <h2>Comments</h2>
+                <div id="comments-list"></div>
+                <textarea id="new-comment-text" placeholder="Add your comment..."></textarea>
+                <button id="submit-comment-button">Submit Comment</button>
+            </div>
+        </div>
+
+        <!-- Navigation Bar -->
+        <nav id="navbar">
+            <button data-page="home-page" class="nav-button active"><img src="icons/home.svg" alt="Home"><span>Home</span></button>
+            <button data-page="add-bot-page" id="add-bot-nav-button" class="nav-button"><img src="icons/add.svg" alt="Add"><span>Add Bot</span></button> <!-- Changed behavior -->
+            <button data-page="profile-page" class="nav-button"><img src="icons/profile.svg" alt="Profile"><span>Profile</span></button>
+        </nav>
+    </div>
+
+    <!-- Popups -->
+    <div id="earn-popup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-popup" data-popup="earn-popup">×</span>
+            <h2>Earn Points!</h2>
+            <p>Watch a short ad to earn 10 points.</p>
+            <p>(Ad will play for ~30 seconds)</p>
+            <button id="watch-ad-button">Watch Ad</button>
+            <p id="ad-status"></p>
+        </div>
+    </div>
+
+    <div id="add-bot-popup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-popup" data-popup="add-bot-popup">×</span>
+            <h2 id="popup-title">Add New Bot</h2> <!-- Dynamic Title -->
+            <form id="add-bot-form">
+                <input type="hidden" id="edit-bot-id"> <!-- For editing -->
+                <label for="bot-name">Bot Name:</label>
+                <input type="text" id="bot-name" required>
+
+                <label for="bot-description">Bot Description:</label>
+                <textarea id="bot-description" rows="3" required></textarea>
+
+                <label for="bot-link">Bot Link (e.g., t.me/YourBot):</label>
+                <input type="url" id="bot-link" required>
+
+                <label for="bot-image">Bot Image Link (Optional):</label>
+                <input type="url" id="bot-image">
+
+                <label for="airdrop-name">Airdrop Name (Optional):</label>
+                <input type="text" id="airdrop-name">
+
+                <label for="airdrop-points">Total Airdrop Points (Optional):</label>
+                <input type="number" id="airdrop-points">
+
+                <label for="telegram-community">Telegram Community Link (Optional):</label>
+                <input type="url" id="telegram-community">
+
+                <button type="submit" id="submit-bot-button">Add Bot</button>
+                 <button type="button" id="delete-bot-button" style="display: none; background-color: #dc3545;">Delete Bot</button> <!-- Delete Button -->
+            </form>
+        </div>
+    </div>
+
+     <div id="boost-popup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-popup" data-popup="boost-popup">×</span>
+            <h2>Boost Your Bot!</h2>
+            <p>Make your bot appear in the Trending section.</p>
+            <input type="hidden" id="boost-bot-id">
+             <div class="boost-options">
+                 <button class="boost-option" data-duration="1" data-cost="1000">1 Day (1000 Points)</button>
+                 <button class="boost-option" data-duration="2" data-cost="2000">2 Days (2000 Points)</button>
+                 <button class="boost-option" data-duration="7" data-cost="10000">1 Week (10,000 Points)</button>
+                 <!-- Add more options as needed -->
+             </div>
+             <p id="boost-status"></p>
+        </div>
+    </div>
+
+    <!-- Custom Alert/Share Popup -->
+    <div id="custom-alert-popup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-popup" data-popup="custom-alert-popup">×</span>
+            <h2 id="custom-alert-title">Alert</h2>
+            <p id="custom-alert-message">Message goes here.</p>
+            <button class="close-popup-button" data-popup="custom-alert-popup">OK</button>
+        </div>
+    </div>
+
+
+    <!-- Your main JavaScript file -->
+    <script src="script.js"></script>
+
+</body>
+</html>

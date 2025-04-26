@@ -1,0 +1,571 @@
+/* Basic Reset & Defaults */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f0f2f5; /* Light grey background */
+    color: #1c1e21; /* Dark text */
+    overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 600px; /* Limit width on larger screens */
+    margin: 0 auto;
+    background-color: #fff; /* White app background */
+    position: relative;
+    overflow: hidden; /* Prevent body scroll when pages scroll */
+}
+
+/* Page Handling */
+.page {
+    display: none; /* Hide pages by default */
+    flex-direction: column;
+    flex-grow: 1; /* Take remaining space */
+    overflow-y: auto; /* Allow scrolling within the page */
+    padding-bottom: 60px; /* Space for navbar */
+}
+
+.page.active {
+    display: flex; /* Show active page */
+}
+
+/* Header */
+header {
+    background-color: #ffffff; /* Telegram-like header */
+    color: #000;
+    padding: 10px 15px;
+    text-align: center;
+    border-bottom: 1px solid #dcdcdc;
+    position: sticky; /* Keep header visible */
+    top: 0;
+    z-index: 10;
+}
+header h1 {
+    font-size: 1.2em;
+    margin: 0;
+}
+header input[type="search"] {
+    width: 100%;
+    padding: 8px 12px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 15px;
+    font-size: 0.9em;
+}
+
+/* Content Area */
+.content-area {
+    padding: 15px;
+    flex-grow: 1;
+}
+
+/* Navigation Bar */
+#navbar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background-color: #ffffff;
+    border-top: 1px solid #dcdcdc;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 55px;
+    max-width: 600px; /* Match app width */
+    margin: 0 auto; /* Center if max-width applies */
+    z-index: 100;
+}
+
+.nav-button {
+    background: none;
+    border: none;
+    color: #8e8e93; /* Inactive color */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    padding: 5px;
+    cursor: pointer;
+    flex-grow: 1;
+}
+.nav-button img { /* Assuming you have SVG icons */
+    width: 24px;
+    height: 24px;
+    margin-bottom: 2px;
+    filter: grayscale(100%); /* Make icons grey */
+}
+.nav-button.active {
+    color: #007aff; /* Active color (Telegram blue) */
+}
+.nav-button.active img {
+    filter: none; /* Show original color */
+}
+.nav-button span {
+    margin-top: 2px;
+}
+
+
+/* Bot List & Cards */
+#bot-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between cards */
+}
+
+.bot-card {
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    cursor: pointer; /* Indicate clickable */
+    transition: background-color 0.2s ease;
+}
+.bot-card:hover {
+    background-color: #efefef;
+}
+
+.bot-card img.bot-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #ccc; /* Placeholder background */
+}
+
+.bot-card .bot-info {
+    flex-grow: 1;
+}
+.bot-card .bot-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 1em;
+}
+.bot-card .bot-info p {
+    font-size: 0.85em;
+    color: #666;
+    margin: 0;
+    /* Limit description lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bot-card .bot-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+.bot-card .like-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: #aaa; /* Default grey heart */
+}
+.bot-card .like-button.liked {
+     color: #ff4f6a; /* Red heart when liked */
+}
+.bot-card .like-count {
+    font-size: 0.8em;
+    color: #555;
+}
+
+/* Profile Page */
+.profile-info p {
+    margin-bottom: 10px;
+    font-size: 1em;
+}
+.profile-info strong {
+    display: inline-block;
+    min-width: 80px;
+}
+#earn-points-button, #share-button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+#share-button {
+     background-color: #4CAF50; /* Green for share */
+}
+
+/* Popups */
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Dark overlay */
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.popup-overlay.active {
+    display: flex; /* Show when active */
+}
+
+.popup-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 85%;
+    max-width: 400px;
+    max-height: 80vh; /* Limit height */
+    overflow-y: auto; /* Allow scroll within popup */
+    position: relative;
+    animation: popup-appear 0.3s ease-out;
+}
+
+@keyframes popup-appear {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.close-popup, .close-popup-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #eee;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    font-size: 1.2em;
+    line-height: 25px;
+    text-align: center;
+    cursor: pointer;
+    color: #555;
+}
+.close-popup-button { /* Style for the OK button */
+    position: static; /* Override absolute positioning */
+    display: block;
+    margin: 15px auto 0; /* Center it */
+    width: auto;
+    padding: 8px 20px;
+    border-radius: 5px;
+    background-color: #007aff;
+    color: white;
+}
+
+.popup-content h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1.2em;
+}
+.popup-content p {
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+/* Form Styles */
+#add-bot-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+#add-bot-form input[type="text"],
+#add-bot-form input[type="url"],
+#add-bot-form input[type="number"],
+#add-bot-form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.95em;
+}
+#add-bot-form button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    margin-top: 10px;
+}
+#add-bot-form button:hover {
+    background-color: #0056b3;
+}
+#delete-bot-button {
+     background-color: #dc3545 !important; /* Important to override */
+}
+#delete-bot-button:hover {
+     background-color: #c82333 !important;
+}
+
+
+/* Ad Popup */
+#watch-ad-button {
+    display: block;
+    margin: 15px auto 5px auto; /* Center button */
+    padding: 10px 20px;
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+#ad-status {
+    text-align: center;
+    font-size: 0.9em;
+    margin-top: 10px;
+    min-height: 1.2em; /* Reserve space */
+}
+
+/* Loading Spinner */
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: #09f; /* Blue spinner */
+    margin: 20px auto;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#loading-page p, #error-page p {
+    text-align: center;
+    color: #555;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #dcdcdc;
+}
+.tab-button {
+    flex: 1;
+    padding: 10px 5px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #555;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+.tab-button.active {
+    color: #007aff;
+    border-bottom-color: #007aff;
+    font-weight: bold;
+}
+
+/* Bot Detail Page */
+#bot-detail-page header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Align items left */
+}
+#back-to-home-button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #007aff;
+    cursor: pointer;
+    margin-right: 10px;
+    padding: 0 5px;
+}
+#bot-detail-page header h1 {
+    flex-grow: 1; /* Take remaining space */
+    text-align: center;
+    margin-right: 30px; /* Adjust to center title better */
+}
+#bot-detail-content {
+    /* Style details as needed */
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+}
+#bot-detail-content img.detail-bot-icon {
+     display: block;
+     width: 80px;
+     height: 80px;
+     border-radius: 50%;
+     margin: 0 auto 15px auto;
+     object-fit: cover;
+     background-color: #ccc;
+}
+#bot-detail-content h2 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+#bot-detail-content p {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    color: #333;
+}
+#bot-detail-content p strong {
+    color: #000;
+}
+.detail-action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+.detail-action-buttons button {
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.detail-like-button {
+     background-color: #f0f0f0;
+     color: #333;
+     border: 1px solid #ccc;
+}
+.detail-like-button.liked {
+     background-color: #ffebee; /* Light red background */
+     color: #e53935; /* Red text/icon */
+     border: 1px solid #e53935;
+}
+.detail-boost-button {
+     background-color: #e3f2fd; /* Light blue background */
+     color: #0d47a1; /* Dark blue */
+     border: 1px solid #90caf9;
+}
+
+/* Comments */
+#bot-comments-section h2 {
+     font-size: 1.1em;
+     margin-bottom: 10px;
+     border-top: 1px solid #eee;
+     padding-top: 15px;
+}
+#comments-list .comment {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    border: 1px solid #eee;
+}
+#comments-list .comment-meta {
+    font-size: 0.8em;
+    color: #777;
+    margin-bottom: 4px;
+}
+#comments-list .comment-meta strong {
+    color: #333;
+}
+#comments-list .comment-text {
+    font-size: 0.95em;
+    color: #1c1e21;
+}
+#new-comment-text {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-top: 10px;
+    min-height: 60px;
+    font-size: 0.95em;
+}
+#submit-comment-button {
+    display: block;
+    margin: 10px 0 0 auto; /* Align right */
+    padding: 8px 15px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Boost Popup */
+.boost-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0;
+}
+.boost-option {
+    padding: 10px;
+    border: 1px solid #007aff;
+    background-color: #fff;
+    color: #007aff;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.boost-option:hover {
+    background-color: #e7f3ff;
+}
+#boost-status {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #dc3545; /* Red for errors initially */
+}
+
+/* My Added Bots List */
+#my-added-bots-list .my-bot-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    background-color: #f9f9f9;
+}
+#my-added-bots-list .my-bot-item span {
+    font-weight: bold;
+}
+#my-added-bots-list .my-bot-actions button {
+    margin-left: 5px;
+    padding: 4px 8px;
+    font-size: 0.8em;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid;
+}
+.edit-my-bot {
+    border-color: #ffc107;
+    color: #ffc107;
+    background-color: white;
+}
+.boost-my-bot {
+    border-color: #17a2b8;
+    color: #17a2b8;
+    background-color: white;
+}
+
+/* Custom Alert Popup */
+#custom-alert-popup .popup-content {
+    text-align: center;
+}
+
+/* --- Add more specific styles as needed --- */
