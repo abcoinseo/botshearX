@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
+  <script>
+    function initAnalytics() {
+      window.telegramAnalytics.init({
+        token: '8118628985:AAERReMIg0VAJAAV2aIltJ9id1nW9Bo92gs',
+        appName: 'ANALYTICS_IDENTIFIER',
+      });
+    }
+</script>
+<script
+    async 
+    src="https://unpkg.com/@telegram-apps/analytics@latest/dist/index.js"
+    onload="initAnalytics()"  
+    type="text/javascript"
+></script>
+<script 
+    async 
+    src="https://tganalytics.xyz/index.js" 
+    onload="initAnalytics()" 
+    type="text/javascript"
+></script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bot Market Pro</title>
